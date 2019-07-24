@@ -27,14 +27,14 @@ import (
 )
 
 const (
-	testHandlerName       = "test-handler"
-	testHandlerNamespace  = "test-handler-namespace"
-	testConfigurationName = "test-handler"
-	testRouteName         = "test-handler"
-	testLabelKey          = "test-label-key"
-	testLabelValue        = "test-label-value"
-	testServiceAccount    = "test-sa"
-	testImage             = "test-image"
+	testHandlerName      = "test-handler"
+	testHandlerNamespace = "test-handler-namespace"
+	testDeploymentName   = "test-handler-handler"
+	testServiceName      = "test-handler-handler"
+	testLabelKey         = "test-label-key"
+	testLabelValue       = "test-label-value"
+	testServiceAccount   = "test-sa"
+	testImage            = "test-image"
 )
 
 func expectOwnerReferencesSetCorrectly(t *testing.T, ownerRefs []metav1.OwnerReference) {

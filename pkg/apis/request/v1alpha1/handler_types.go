@@ -18,7 +18,6 @@ package v1alpha1
 
 import (
 	knapis "github.com/knative/pkg/apis"
-	duckv1alpha1 "github.com/knative/pkg/apis/duck/v1alpha1"
 	duckv1beta1 "github.com/knative/pkg/apis/duck/v1beta1"
 	"github.com/knative/pkg/kmeta"
 	"github.com/projectriff/system/pkg/apis"
@@ -65,19 +64,8 @@ type Build struct {
 
 type HandlerStatus struct {
 	duckv1beta1.Status `json:",inline"`
-
-	// ConfigurationName is the name of the Knative Serving configuration
-	// backing this handler.
-	ConfigurationName string `json:"configurationName,omitempty"`
-
-	// RouteName is the name of the Knative Serving route backing this handler.
-	RouteName string `json:"routeName,omitempty"`
-
-	// Address to target this handler internally
-	Address *duckv1alpha1.Addressable `json:"address,omitempty"`
-
-	// URL to target this handler publicly
-	URL *knapis.URL `json:"url,omitempty"`
+	DeploymentName     string `json:"deploymentName,omitempty"`
+	ServiceName        string `json:"serviceName,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

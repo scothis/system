@@ -31,9 +31,6 @@ spec:
   subresources:
     status: {}
   additionalPrinterColumns:
-  - name: URL
-    type: string
-    JSONPath: ".status.url"
   - name: Ready
     type: string
     JSONPath: ".status.conditions[?(@.type==\"Ready\")].status"

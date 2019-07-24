@@ -36,7 +36,7 @@ func TestHandlerDefaulting(t *testing.T) {
 			Spec: HandlerSpec{
 				Template: &corev1.PodSpec{
 					Containers: []corev1.Container{
-						{},
+						{Name: "handler"},
 					},
 				},
 			},
@@ -65,7 +65,7 @@ func TestHandlerSpecDefaulting(t *testing.T) {
 		want: &HandlerSpec{
 			Template: &corev1.PodSpec{
 				Containers: []corev1.Container{
-					{},
+					{Name: "handler"},
 				},
 			},
 		},

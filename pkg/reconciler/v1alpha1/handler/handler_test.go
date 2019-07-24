@@ -20,13 +20,12 @@ import (
 	"testing"
 
 	"github.com/knative/pkg/controller"
-	fakeknservingclientset "github.com/knative/serving/pkg/client/clientset/versioned/fake"
-	knservinginformers "github.com/knative/serving/pkg/client/informers/externalversions"
 	fakeprojectriffclientset "github.com/projectriff/system/pkg/client/clientset/versioned/fake"
 	projectriffinformers "github.com/projectriff/system/pkg/client/informers/externalversions"
 	"github.com/projectriff/system/pkg/reconciler"
 	rtesting "github.com/projectriff/system/pkg/reconciler/testing"
 	. "github.com/projectriff/system/pkg/reconciler/v1alpha1/testing"
+	kubeinformers "k8s.io/client-go/informers"
 	fakekubeclientset "k8s.io/client-go/kubernetes/fake"
 )
 
@@ -42,13 +41,13 @@ func TestReconcile(t *testing.T) {
 	defer ClearAllLoggers()
 	table.Test(t, MakeFactory(func(listers *Listers, opt reconciler.Options) controller.Reconciler {
 		return &Reconciler{
-			Base:                  reconciler.NewBase(opt, controllerAgentName),
-			handlerLister:         listers.GetHandlerLister(),
-			processorLister:       listers.GetProcessorLister(),
-			knconfigurationLister: listers.GetKnConfigurationLister(),
-			knrouteLister:         listers.GetKnRouteLister(),
-			applicationLister:     listers.GetApplicationLister(),
-			functionLister:        listers.GetFunctionLister(),
+			Base:              reconciler.NewBase(opt, controllerAgentName),
+			handlerLister:     listers.GetHandlerLister(),
+			processorLister:   listers.GetProcessorLister(),
+			deploymentLister:  listers.GetDeploymentLister(),
+			serviceLister:     listers.GetServiceLister(),
+			applicationLister: listers.GetApplicationLister(),
+			functionLister:    listers.GetFunctionLister(),
 
 			tracker: &rtesting.NullTracker{},
 		}
@@ -58,23 +57,21 @@ func TestReconcile(t *testing.T) {
 func TestNew(t *testing.T) {
 	defer ClearAllLoggers()
 	kubeClient := fakekubeclientset.NewSimpleClientset()
+	kubeInformer := kubeinformers.NewSharedInformerFactory(kubeClient, 0)
 	projectriffClient := fakeprojectriffclientset.NewSimpleClientset()
 	projectriffInformer := projectriffinformers.NewSharedInformerFactory(projectriffClient, 0)
-	knservingClient := fakeknservingclientset.NewSimpleClientset()
-	knservingInformer := knservinginformers.NewSharedInformerFactory(knservingClient, 0)
 
 	handlerInformer := projectriffInformer.Request().V1alpha1().Handlers()
-	knconfigurationInformer := knservingInformer.Serving().V1alpha1().Configurations()
-	knrouteInformer := knservingInformer.Serving().V1alpha1().Routes()
+	deploymentInformer := kubeInformer.Apps().V1().Deployments()
+	serviceInformer := kubeInformer.Core().V1().Services()
 	applicationInformer := projectriffInformer.Build().V1alpha1().Applications()
 	functionInformer := projectriffInformer.Build().V1alpha1().Functions()
 
 	c := NewController(reconciler.Options{
 		KubeClientSet:        kubeClient,
 		ProjectriffClientSet: projectriffClient,
-		KnServingClientSet:   knservingClient,
 		Logger:               TestLogger(t),
-	}, handlerInformer, knconfigurationInformer, knrouteInformer, applicationInformer, functionInformer)
+	}, handlerInformer, deploymentInformer, serviceInformer, applicationInformer, functionInformer)
 
 	if c == nil {
 		t.Fatal("Expected NewController to return a non-nil value")

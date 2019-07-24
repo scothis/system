@@ -30,25 +30,25 @@ func TestNames(t *testing.T) {
 		f       func(*requestv1alpha1.Handler) string
 		want    string
 	}{{
-		name: "Route",
+		name: "Service",
 		request: &requestv1alpha1.Handler{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "foo",
 				Namespace: "default",
 			},
 		},
-		f:    Route,
-		want: "foo",
+		f:    Service,
+		want: "foo-handler",
 	}, {
-		name: "Configuration",
+		name: "Deployment",
 		request: &requestv1alpha1.Handler{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "foo",
 				Namespace: "default",
 			},
 		},
-		f:    Configuration,
-		want: "foo",
+		f:    Deployment,
+		want: "foo-handler",
 	}}
 
 	for _, test := range tests {

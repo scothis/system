@@ -26,9 +26,6 @@ import (
 	"github.com/knative/pkg/kmp"
 	"github.com/knative/pkg/logging"
 	"github.com/knative/pkg/tracker"
-	knservingv1alpha1 "github.com/knative/serving/pkg/apis/serving/v1alpha1"
-	knservinginformers "github.com/knative/serving/pkg/client/informers/externalversions/serving/v1alpha1"
-	knservinglisters "github.com/knative/serving/pkg/client/listers/serving/v1alpha1"
 	buildv1alpha1 "github.com/projectriff/system/pkg/apis/build/v1alpha1"
 	requestv1alpha1 "github.com/projectriff/system/pkg/apis/request/v1alpha1"
 	buildinformers "github.com/projectriff/system/pkg/client/informers/externalversions/build/v1alpha1"
@@ -40,11 +37,16 @@ import (
 	"github.com/projectriff/system/pkg/reconciler/v1alpha1/handler/resources"
 	resourcenames "github.com/projectriff/system/pkg/reconciler/v1alpha1/handler/resources/names"
 	"go.uber.org/zap"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	appsinformers "k8s.io/client-go/informers/apps/v1"
+	coreinformers "k8s.io/client-go/informers/core/v1"
+	appslisters "k8s.io/client-go/listers/apps/v1"
+	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -59,12 +61,12 @@ type Reconciler struct {
 	*reconciler.Base
 
 	// listers index properties about resources
-	handlerLister         requestlisters.HandlerLister
-	processorLister       streamlisters.ProcessorLister
-	knconfigurationLister knservinglisters.ConfigurationLister
-	knrouteLister         knservinglisters.RouteLister
-	applicationLister     buildlisters.ApplicationLister
-	functionLister        buildlisters.FunctionLister
+	handlerLister     requestlisters.HandlerLister
+	processorLister   streamlisters.ProcessorLister
+	deploymentLister  appslisters.DeploymentLister
+	serviceLister     corelisters.ServiceLister
+	applicationLister buildlisters.ApplicationLister
+	functionLister    buildlisters.FunctionLister
 
 	tracker tracker.Interface
 }
@@ -77,19 +79,19 @@ var _ controller.Reconciler = (*Reconciler)(nil)
 func NewController(
 	opt reconciler.Options,
 	handlerInformer requestinformers.HandlerInformer,
-	knconfigurationInformer knservinginformers.ConfigurationInformer,
-	knrouteInformer knservinginformers.RouteInformer,
+	deploymentInformer appsinformers.DeploymentInformer,
+	serviceInformer coreinformers.ServiceInformer,
 	applicationInformer buildinformers.ApplicationInformer,
 	functionInformer buildinformers.FunctionInformer,
 ) *controller.Impl {
 
 	c := &Reconciler{
-		Base:                  reconciler.NewBase(opt, controllerAgentName),
-		handlerLister:         handlerInformer.Lister(),
-		knconfigurationLister: knconfigurationInformer.Lister(),
-		knrouteLister:         knrouteInformer.Lister(),
-		applicationLister:     applicationInformer.Lister(),
-		functionLister:        functionInformer.Lister(),
+		Base:              reconciler.NewBase(opt, controllerAgentName),
+		handlerLister:     handlerInformer.Lister(),
+		deploymentLister:  deploymentInformer.Lister(),
+		serviceLister:     serviceInformer.Lister(),
+		applicationLister: applicationInformer.Lister(),
+		functionLister:    functionInformer.Lister(),
 	}
 	impl := controller.NewImpl(c, c.Logger, ReconcilerName)
 
@@ -97,11 +99,11 @@ func NewController(
 	handlerInformer.Informer().AddEventHandler(reconciler.Handler(impl.Enqueue))
 
 	// controlled resources
-	knconfigurationInformer.Informer().AddEventHandler(cache.FilteringResourceEventHandler{
+	deploymentInformer.Informer().AddEventHandler(cache.FilteringResourceEventHandler{
 		FilterFunc: controller.Filter(requestv1alpha1.SchemeGroupVersion.WithKind("Handler")),
 		Handler:    reconciler.Handler(impl.EnqueueControllerOf),
 	})
-	knrouteInformer.Informer().AddEventHandler(cache.FilteringResourceEventHandler{
+	serviceInformer.Informer().AddEventHandler(cache.FilteringResourceEventHandler{
 		FilterFunc: controller.Filter(requestv1alpha1.SchemeGroupVersion.WithKind("Handler")),
 		Handler:    reconciler.Handler(impl.EnqueueControllerOf),
 	})
@@ -195,64 +197,64 @@ func (c *Reconciler) reconcile(ctx context.Context, handler *requestv1alpha1.Han
 		return err
 	}
 
-	configurationName := resourcenames.Configuration(handler)
-	configuration, err := c.knconfigurationLister.Configurations(handler.Namespace).Get(configurationName)
+	deploymentName := resourcenames.Deployment(handler)
+	deployment, err := c.deploymentLister.Deployments(handler.Namespace).Get(deploymentName)
 	if errors.IsNotFound(err) {
-		configuration, err = c.createConfiguration(handler)
+		deployment, err = c.createDeployment(handler)
 		if err != nil {
-			logger.Errorf("Failed to create Configuration %q: %v", configurationName, err)
-			c.Recorder.Eventf(handler, corev1.EventTypeWarning, "CreationFailed", "Failed to create Configuration %q: %v", configurationName, err)
+			logger.Errorf("Failed to create Deployment %q: %v", deploymentName, err)
+			c.Recorder.Eventf(handler, corev1.EventTypeWarning, "CreationFailed", "Failed to create Deployment %q: %v", deploymentName, err)
 			return err
 		}
-		if configuration != nil {
-			c.Recorder.Eventf(handler, corev1.EventTypeNormal, "Created", "Created Configuration %q", configurationName)
+		if deployment != nil {
+			c.Recorder.Eventf(handler, corev1.EventTypeNormal, "Created", "Created Deployment %q", deploymentName)
 		}
 	} else if err != nil {
-		logger.Errorf("Failed to reconcile Handler: %q failed to Get Configuration: %q; %v", handler.Name, configurationName, zap.Error(err))
+		logger.Errorf("Failed to reconcile Handler: %q failed to Get Deployment: %q; %v", handler.Name, deploymentName, zap.Error(err))
 		return err
-	} else if !metav1.IsControlledBy(configuration, handler) {
+	} else if !metav1.IsControlledBy(deployment, handler) {
 		// Surface an error in the handler's status,and return an error.
-		handler.Status.MarkConfigurationNotOwned(configurationName)
-		return fmt.Errorf("Handler: %q does not own Configuration: %q", handler.Name, configurationName)
+		handler.Status.MarkDeploymentNotOwned(deploymentName)
+		return fmt.Errorf("Handler: %q does not own Deployment: %q", handler.Name, deploymentName)
 	} else {
-		configuration, err = c.reconcileConfiguration(ctx, handler, configuration)
+		deployment, err = c.reconcileDeployment(ctx, handler, deployment)
 		if err != nil {
-			logger.Errorf("Failed to reconcile Handler: %q failed to reconcile Configuration: %q; %v", handler.Name, configuration, zap.Error(err))
+			logger.Errorf("Failed to reconcile Handler: %q failed to reconcile Deployment: %q; %v", handler.Name, deployment, zap.Error(err))
 			return err
 		}
 	}
 
-	// Update our Status based on the state of our underlying Configuration.
-	handler.Status.ConfigurationName = configuration.Name
-	handler.Status.PropagateConfigurationStatus(&configuration.Status)
+	// Update our Status based on the state of our underlying Deployment.
+	handler.Status.DeploymentName = deployment.Name
+	handler.Status.PropagateDeploymentStatus(&deployment.Status)
 
-	routeName := resourcenames.Route(handler)
-	route, err := c.knrouteLister.Routes(handler.Namespace).Get(routeName)
+	serviceName := resourcenames.Service(handler)
+	service, err := c.serviceLister.Services(handler.Namespace).Get(serviceName)
 	if errors.IsNotFound(err) {
-		route, err = c.createRoute(handler)
+		service, err = c.createService(handler)
 		if err != nil {
-			logger.Errorf("Failed to create Route %q: %v", routeName, err)
-			c.Recorder.Eventf(handler, corev1.EventTypeWarning, "CreationFailed", "Failed to create Route %q: %v", routeName, err)
+			logger.Errorf("Failed to create Service %q: %v", serviceName, err)
+			c.Recorder.Eventf(handler, corev1.EventTypeWarning, "CreationFailed", "Failed to create Service %q: %v", serviceName, err)
 			return err
 		}
-		if route != nil {
-			c.Recorder.Eventf(handler, corev1.EventTypeNormal, "Created", "Created Route %q", routeName)
+		if service != nil {
+			c.Recorder.Eventf(handler, corev1.EventTypeNormal, "Created", "Created Service %q", serviceName)
 		}
 	} else if err != nil {
-		logger.Errorf("Failed to reconcile Handler: %q failed to Get Route: %q; %v", handler.Name, routeName, zap.Error(err))
+		logger.Errorf("Failed to reconcile Handler: %q failed to Get Service: %q; %v", handler.Name, serviceName, zap.Error(err))
 		return err
-	} else if !metav1.IsControlledBy(route, handler) {
+	} else if !metav1.IsControlledBy(service, handler) {
 		// Surface an error in the handler's status,and return an error.
-		handler.Status.MarkRouteNotOwned(routeName)
-		return fmt.Errorf("Handler: %q does not own Route: %q", handler.Name, routeName)
-	} else if route, err = c.reconcileRoute(ctx, handler, route); err != nil {
-		logger.Errorf("Failed to reconcile Handler: %q failed to reconcile Route: %q; %v", handler.Name, route, zap.Error(err))
+		handler.Status.MarkServiceNotOwned(serviceName)
+		return fmt.Errorf("Handler: %q does not own Service: %q", handler.Name, serviceName)
+	} else if service, err = c.reconcileService(ctx, handler, service); err != nil {
+		logger.Errorf("Failed to reconcile Handler: %q failed to reconcile Service: %q; %v", handler.Name, service, zap.Error(err))
 		return err
 	}
 
-	// Update our Status based on the state of our underlying Route.
-	handler.Status.RouteName = route.Name
-	handler.Status.PropagateRouteStatus(&route.Status)
+	// Update our Status based on the state of our underlying Service.
+	handler.Status.ServiceName = service.Name
+	handler.Status.PropagateServiceStatus(&service.Status)
 
 	handler.Status.ObservedGeneration = handler.Generation
 
@@ -327,78 +329,78 @@ func (c *Reconciler) reconcileBuild(handler *requestv1alpha1.Handler) error {
 	return fmt.Errorf("invalid handler build")
 }
 
-func (c *Reconciler) reconcileConfiguration(ctx context.Context, handler *requestv1alpha1.Handler, configuration *knservingv1alpha1.Configuration) (*knservingv1alpha1.Configuration, error) {
+func (c *Reconciler) reconcileDeployment(ctx context.Context, handler *requestv1alpha1.Handler, deployment *appsv1.Deployment) (*appsv1.Deployment, error) {
 	logger := logging.FromContext(ctx)
-	desiredConfiguration, err := resources.MakeConfiguration(handler)
+	desiredDeployment, err := resources.MakeDeployment(handler)
 	if err != nil {
 		return nil, err
 	}
 
-	if configurationSemanticEquals(desiredConfiguration, configuration) {
+	if deploymentSemanticEquals(desiredDeployment, deployment) {
 		// No differences to reconcile.
-		return configuration, nil
+		return deployment, nil
 	}
-	diff, err := kmp.SafeDiff(desiredConfiguration.Spec, configuration.Spec)
+	diff, err := kmp.SafeDiff(desiredDeployment.Spec, deployment.Spec)
 	if err != nil {
-		return nil, fmt.Errorf("failed to diff Configuration: %v", err)
+		return nil, fmt.Errorf("failed to diff Deployment: %v", err)
 	}
-	logger.Infof("Reconciling configuration diff (-desired, +observed): %s", diff)
+	logger.Infof("Reconciling deployment diff (-desired, +observed): %s", diff)
 
 	// Don't modify the informers copy.
-	existing := configuration.DeepCopy()
+	existing := deployment.DeepCopy()
 	// Preserve the rest of the object (e.g. ObjectMeta except for labels).
-	existing.Spec = desiredConfiguration.Spec
-	existing.ObjectMeta.Labels = desiredConfiguration.ObjectMeta.Labels
-	return c.KnServingClientSet.ServingV1alpha1().Configurations(handler.Namespace).Update(existing)
+	existing.Spec = desiredDeployment.Spec
+	existing.ObjectMeta.Labels = desiredDeployment.ObjectMeta.Labels
+	return c.KubeClientSet.AppsV1().Deployments(handler.Namespace).Update(existing)
 }
 
-func (c *Reconciler) createConfiguration(handler *requestv1alpha1.Handler) (*knservingv1alpha1.Configuration, error) {
-	configuration, err := resources.MakeConfiguration(handler)
+func (c *Reconciler) createDeployment(handler *requestv1alpha1.Handler) (*appsv1.Deployment, error) {
+	deployment, err := resources.MakeDeployment(handler)
 	if err != nil {
 		return nil, err
 	}
-	return c.KnServingClientSet.ServingV1alpha1().Configurations(handler.Namespace).Create(configuration)
+	return c.KubeClientSet.AppsV1().Deployments(handler.Namespace).Create(deployment)
 }
 
-func configurationSemanticEquals(desiredConfiguration, configuration *knservingv1alpha1.Configuration) bool {
-	return equality.Semantic.DeepEqual(desiredConfiguration.Spec, configuration.Spec) &&
-		equality.Semantic.DeepEqual(desiredConfiguration.ObjectMeta.Labels, configuration.ObjectMeta.Labels)
+func deploymentSemanticEquals(desiredDeployment, deployment *appsv1.Deployment) bool {
+	return equality.Semantic.DeepEqual(desiredDeployment.Spec, deployment.Spec) &&
+		equality.Semantic.DeepEqual(desiredDeployment.ObjectMeta.Labels, deployment.ObjectMeta.Labels)
 }
 
-func (c *Reconciler) reconcileRoute(ctx context.Context, handler *requestv1alpha1.Handler, route *knservingv1alpha1.Route) (*knservingv1alpha1.Route, error) {
+func (c *Reconciler) reconcileService(ctx context.Context, handler *requestv1alpha1.Handler, service *corev1.Service) (*corev1.Service, error) {
 	logger := logging.FromContext(ctx)
-	desiredRoute, err := resources.MakeRoute(handler)
+	desiredService, err := resources.MakeService(handler)
 	if err != nil {
 		return nil, err
 	}
 
-	if routeSemanticEquals(desiredRoute, route) {
+	if serviceSemanticEquals(desiredService, service) {
 		// No differences to reconcile.
-		return route, nil
+		return service, nil
 	}
-	diff, err := kmp.SafeDiff(desiredRoute.Spec, route.Spec)
+	diff, err := kmp.SafeDiff(desiredService.Spec, service.Spec)
 	if err != nil {
-		return nil, fmt.Errorf("failed to diff Route: %v", err)
+		return nil, fmt.Errorf("failed to diff Service: %v", err)
 	}
-	logger.Infof("Reconciling route diff (-desired, +observed): %s", diff)
+	logger.Infof("Reconciling service diff (-desired, +observed): %s", diff)
 
 	// Don't modify the informers copy.
-	existing := route.DeepCopy()
+	existing := service.DeepCopy()
 	// Preserve the rest of the object (e.g. ObjectMeta except for labels).
-	existing.Spec = desiredRoute.Spec
-	existing.ObjectMeta.Labels = desiredRoute.ObjectMeta.Labels
-	return c.KnServingClientSet.ServingV1alpha1().Routes(handler.Namespace).Update(existing)
+	existing.Spec = desiredService.Spec
+	existing.ObjectMeta.Labels = desiredService.ObjectMeta.Labels
+	return c.KubeClientSet.CoreV1().Services(handler.Namespace).Update(existing)
 }
 
-func (c *Reconciler) createRoute(handler *requestv1alpha1.Handler) (*knservingv1alpha1.Route, error) {
-	route, err := resources.MakeRoute(handler)
+func (c *Reconciler) createService(handler *requestv1alpha1.Handler) (*corev1.Service, error) {
+	service, err := resources.MakeService(handler)
 	if err != nil {
 		return nil, err
 	}
-	return c.KnServingClientSet.ServingV1alpha1().Routes(handler.Namespace).Create(route)
+	return c.KubeClientSet.CoreV1().Services(handler.Namespace).Create(service)
 }
 
-func routeSemanticEquals(desiredRoute, route *knservingv1alpha1.Route) bool {
-	return equality.Semantic.DeepEqual(desiredRoute.Spec, route.Spec) &&
-		equality.Semantic.DeepEqual(desiredRoute.ObjectMeta.Labels, route.ObjectMeta.Labels)
+func serviceSemanticEquals(desiredService, service *corev1.Service) bool {
+	return equality.Semantic.DeepEqual(desiredService.Spec, service.Spec) &&
+		equality.Semantic.DeepEqual(desiredService.ObjectMeta.Labels, service.ObjectMeta.Labels)
 }

@@ -17,13 +17,15 @@ limitations under the License.
 package names
 
 import (
+	"fmt"
+
 	requestv1alpha1 "github.com/projectriff/system/pkg/apis/request/v1alpha1"
 )
 
-func Configuration(h *requestv1alpha1.Handler) string {
-	return h.Name
+func Deployment(h *requestv1alpha1.Handler) string {
+	return fmt.Sprintf("%s-handler", h.Name)
 }
 
-func Route(h *requestv1alpha1.Handler) string {
-	return h.Name
+func Service(h *requestv1alpha1.Handler) string {
+	return fmt.Sprintf("%s-handler", h.Name)
 }

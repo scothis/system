@@ -37,8 +37,6 @@ import (
 	"github.com/knative/pkg/signals"
 	"github.com/knative/pkg/system"
 	"github.com/knative/pkg/version"
-	knservingclientset "github.com/knative/serving/pkg/client/clientset/versioned"
-	knservinginformers "github.com/knative/serving/pkg/client/informers/externalversions"
 	projectriffclientset "github.com/projectriff/system/pkg/client/clientset/versioned"
 	projectriffinformers "github.com/projectriff/system/pkg/client/informers/externalversions"
 	"github.com/projectriff/system/pkg/logging"
@@ -104,11 +102,6 @@ func main() {
 		logger.Fatalw("Error building knbuild clientset", zap.Error(err))
 	}
 
-	knservingClient, err := knservingclientset.NewForConfig(cfg)
-	if err != nil {
-		logger.Fatalw("Error building knserving clientset", zap.Error(err))
-	}
-
 	if err := version.CheckMinimumVersion(kubeClient.Discovery()); err != nil {
 		logger.Fatalf("Version check failed: %v", err)
 	}
@@ -119,7 +112,6 @@ func main() {
 		KubeClientSet:        kubeClient,
 		ProjectriffClientSet: projectriffClient,
 		KnBuildClientSet:     knbuildClient,
-		KnServingClientSet:   knservingClient,
 		ConfigMapWatcher:     configMapWatcher,
 		Logger:               logger,
 		ResyncPeriod:         10 * time.Hour, // Based on controller-runtime default.
@@ -129,7 +121,6 @@ func main() {
 	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(kubeClient, opt.ResyncPeriod)
 	projectriffInformerFactory := projectriffinformers.NewSharedInformerFactory(projectriffClient, opt.ResyncPeriod)
 	knbuildInformerFactory := knbuildinformers.NewSharedInformerFactory(knbuildClient, opt.ResyncPeriod)
-	knservingInformerFactory := knservinginformers.NewSharedInformerFactory(knservingClient, opt.ResyncPeriod)
 
 	applicationInformer := projectriffInformerFactory.Build().V1alpha1().Applications()
 	functionInformer := projectriffInformerFactory.Build().V1alpha1().Functions()
@@ -138,14 +129,13 @@ func main() {
 	processorInformer := projectriffInformerFactory.Stream().V1alpha1().Processors()
 
 	deploymentInformer := kubeInformerFactory.Apps().V1().Deployments()
+	serviceInformer := kubeInformerFactory.Core().V1().Services()
 	configmapInformer := kubeInformerFactory.Core().V1().ConfigMaps()
 	pvcInformer := kubeInformerFactory.Core().V1().PersistentVolumeClaims()
 	secretInformer := kubeInformerFactory.Core().V1().Secrets()
 	serviceaccountInformer := kubeInformerFactory.Core().V1().ServiceAccounts()
 	knbuildInformer := knbuildInformerFactory.Build().V1alpha1().Builds()
 	knclusterbuildtemplateInformer := knbuildInformerFactory.Build().V1alpha1().ClusterBuildTemplates()
-	knconfigurationInformer := knservingInformerFactory.Serving().V1alpha1().Configurations()
-	knrouteInformer := knservingInformerFactory.Serving().V1alpha1().Routes()
 
 	// Build all of our controllers, with the clients constructed above.
 	// Add new controllers to this array.
@@ -186,8 +176,8 @@ func main() {
 			opt,
 			handlerInformer,
 
-			knconfigurationInformer,
-			knrouteInformer,
+			deploymentInformer,
+			serviceInformer,
 			applicationInformer,
 			functionInformer,
 		),
@@ -215,7 +205,6 @@ func main() {
 	kubeInformerFactory.Start(stopCh)
 	projectriffInformerFactory.Start(stopCh)
 	knbuildInformerFactory.Start(stopCh)
-	knservingInformerFactory.Start(stopCh)
 	if err := configMapWatcher.Start(stopCh); err != nil {
 		logger.Fatalw("failed to start configuration manager", zap.Error(err))
 	}
@@ -229,12 +218,11 @@ func main() {
 		streamInformer.Informer().HasSynced,
 		processorInformer.Informer().HasSynced,
 		deploymentInformer.Informer().HasSynced,
+		serviceInformer.Informer().HasSynced,
 		pvcInformer.Informer().HasSynced,
 		secretInformer.Informer().HasSynced,
 		serviceaccountInformer.Informer().HasSynced,
 		knbuildInformer.Informer().HasSynced,
-		knconfigurationInformer.Informer().HasSynced,
-		knrouteInformer.Informer().HasSynced,
 	} {
 		if ok := cache.WaitForCacheSync(stopCh, synced); !ok {
 			logger.Fatalf("Failed to wait for cache at index %d to sync", i)
