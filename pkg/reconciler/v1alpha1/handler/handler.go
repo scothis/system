@@ -66,6 +66,7 @@ type Reconciler struct {
 	deploymentLister  appslisters.DeploymentLister
 	serviceLister     corelisters.ServiceLister
 	applicationLister buildlisters.ApplicationLister
+	containerLister   buildlisters.ContainerLister
 	functionLister    buildlisters.FunctionLister
 
 	tracker tracker.Interface
@@ -82,6 +83,7 @@ func NewController(
 	deploymentInformer appsinformers.DeploymentInformer,
 	serviceInformer coreinformers.ServiceInformer,
 	applicationInformer buildinformers.ApplicationInformer,
+	containerInformer buildinformers.ContainerInformer,
 	functionInformer buildinformers.FunctionInformer,
 ) *controller.Impl {
 
@@ -91,6 +93,7 @@ func NewController(
 		deploymentLister:  deploymentInformer.Lister(),
 		serviceLister:     serviceInformer.Lister(),
 		applicationLister: applicationInformer.Lister(),
+		containerLister:   containerInformer.Lister(),
 		functionLister:    functionInformer.Lister(),
 	}
 	impl := controller.NewImpl(c, c.Logger, ReconcilerName)
@@ -117,6 +120,15 @@ func NewController(
 		controller.EnsureTypeMeta(
 			c.tracker.OnChanged,
 			buildv1alpha1.SchemeGroupVersion.WithKind("Application"),
+		),
+	))
+	containerInformer.Informer().AddEventHandler(reconciler.Handler(
+		// Call the tracker's OnChanged method, but we've seen the objects
+		// coming through this path missing TypeMeta, so ensure it is properly
+		// populated.
+		controller.EnsureTypeMeta(
+			c.tracker.OnChanged,
+			buildv1alpha1.SchemeGroupVersion.WithKind("Container"),
 		),
 	))
 	functionInformer.Informer().AddEventHandler(reconciler.Handler(
@@ -304,6 +316,23 @@ func (c *Reconciler) reconcileBuild(handler *requestv1alpha1.Handler) error {
 		// track application for new images
 		gvk := buildv1alpha1.SchemeGroupVersion.WithKind("Application")
 		if err := c.tracker.Track(reconciler.MakeObjectRef(application, gvk), handler); err != nil {
+			return err
+		}
+		return nil
+
+	case build.ContainerRef != "":
+		container, err := c.containerLister.Containers(handler.Namespace).Get(build.ContainerRef)
+		if err != nil {
+			return err
+		}
+		if container.Status.LatestImage == "" {
+			return fmt.Errorf("container %q does not have a ready image", build.ContainerRef)
+		}
+		handler.Spec.Template.Containers[0].Image = container.Status.LatestImage
+
+		// track container for new images
+		gvk := buildv1alpha1.SchemeGroupVersion.WithKind("Container")
+		if err := c.tracker.Track(reconciler.MakeObjectRef(container, gvk), handler); err != nil {
 			return err
 		}
 		return nil

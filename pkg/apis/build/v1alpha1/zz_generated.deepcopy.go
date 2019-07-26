@@ -239,6 +239,7 @@ func (in *ContainerSpec) DeepCopy() *ContainerSpec {
 func (in *ContainerStatus) DeepCopyInto(out *ContainerStatus) {
 	*out = *in
 	in.Status.DeepCopyInto(&out.Status)
+	out.BuildStatus = in.BuildStatus
 	return
 }
 

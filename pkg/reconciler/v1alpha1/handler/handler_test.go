@@ -65,13 +65,14 @@ func TestNew(t *testing.T) {
 	deploymentInformer := kubeInformer.Apps().V1().Deployments()
 	serviceInformer := kubeInformer.Core().V1().Services()
 	applicationInformer := projectriffInformer.Build().V1alpha1().Applications()
+	containerInformer := projectriffInformer.Build().V1alpha1().Containers()
 	functionInformer := projectriffInformer.Build().V1alpha1().Functions()
 
 	c := NewController(reconciler.Options{
 		KubeClientSet:        kubeClient,
 		ProjectriffClientSet: projectriffClient,
 		Logger:               TestLogger(t),
-	}, handlerInformer, deploymentInformer, serviceInformer, applicationInformer, functionInformer)
+	}, handlerInformer, deploymentInformer, serviceInformer, applicationInformer, containerInformer, functionInformer)
 
 	if c == nil {
 		t.Fatal("Expected NewController to return a non-nil value")

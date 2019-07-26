@@ -190,6 +190,7 @@ func main() {
 			deploymentInformer,
 			serviceInformer,
 			applicationInformer,
+			containerAgressiveInformer,
 			functionInformer,
 		),
 		// streams.projectriff.io
