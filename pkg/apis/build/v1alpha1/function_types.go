@@ -51,6 +51,11 @@ type FunctionSpec struct {
 	// Source location. Required for on cluster builds.
 	Source *Source `json:"source,omitempty"`
 
+	FailedBuildHistoryLimit  *int64               `json:"failedBuildHistoryLimit"`
+	SuccessBuildHistoryLimit *int64               `json:"successBuildHistoryLimit"`
+	ImageTaggingStrategy     ImageTaggingStrategy `json:"imageTaggingStrategy"`
+	Build                    ImageBuild           `json:"build"`
+
 	// Artifact file containing the function within the build workspace.
 	Artifact string `json:"artifact,omitempty"`
 
