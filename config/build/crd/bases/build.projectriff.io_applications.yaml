@@ -231,11 +231,7 @@ spec:
               format: int64
               type: integer
           required:
-          - build
-          - failedBuildHistoryLimit
           - image
-          - imageTaggingStrategy
-          - successBuildHistoryLimit
           type: object
         status:
           description: ApplicationStatus defines the observed state of Application
