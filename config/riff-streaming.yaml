@@ -654,7 +654,7 @@ metadata:
 ---
 apiVersion: v1
 data:
-  processorImage: projectriff/streaming-processor
+  processorImage: projectriff/streaming-processor:1.0.0-SNAPSHOT-263f075ee7e96973
 kind: ConfigMap
 metadata:
   labels:
