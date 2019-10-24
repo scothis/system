@@ -22,7 +22,7 @@ helm repo add projectriff https://projectriff.storage.googleapis.com/charts/rele
 helm repo update
 
 echo "Installing Cert Manager"
-helm install projectriff/cert-manager --name cert-manager --wait
+helm install projectriff/cert-manager --name cert-manager --devel --wait
 
 source $FATS_DIR/macros/no-resource-requests.sh
 
@@ -47,7 +47,7 @@ if [ $RUNTIME = "core" ]; then
   fi
 elif [ $RUNTIME = "knative" ]; then
   echo "Installing Istio"
-  helm install projectriff/istio --name istio --namespace istio-system --wait --set gateways.istio-ingressgateway.type=${K8S_SERVICE_TYPE}
+  helm install projectriff/istio --name istio --namespace istio-system --devel --wait --set gateways.istio-ingressgateway.type=${K8S_SERVICE_TYPE}
   echo "Checking for ready ingress"
   wait_for_ingress_ready 'istio-ingressgateway' 'istio-system'
   
