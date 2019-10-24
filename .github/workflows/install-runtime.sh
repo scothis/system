@@ -64,3 +64,6 @@ elif [ $RUNTIME = "streaming" ]; then
   echo "Streaming runtime is not implemented yet"
   exit 1
 fi
+
+wait_pod_selector_ready "component=build.projectriff.io,control-plane=controller-manager" riff-system
+wait_pod_selector_ready "component=${RUNTIME}.projectriff.io,control-plane=controller-manager" riff-system
