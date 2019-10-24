@@ -16,12 +16,15 @@ source ${FATS_DIR}/.configure.sh
 
 export KO_DOCKER_REPO=$(fats_image_repo '#' | cut -d '#' -f 1 | sed 's|/$||g')
 
-source $FATS_DIR/macros/no-resource-requests.sh
-
 echo "Initialize Helm"
 source $FATS_DIR/macros/helm-init.sh
 helm repo add projectriff https://projectriff.storage.googleapis.com/charts/releases
 helm repo update
+
+echo "Installing Cert Manager"
+helm install projectriff/cert-manager --name cert-manager --wait
+
+source $FATS_DIR/macros/no-resource-requests.sh
 
 echo "Installing kpack"
 fats_retry kubectl apply -f https://storage.googleapis.com/projectriff/internal/kpack/kpack-0.0.5-snapshot-5a4e635d.yaml
