@@ -96,7 +96,7 @@ func TestValidateProcessorSpec(t *testing.T) {
 				{Stream: ""},
 			},
 		},
-		expected: validation.ErrInvalidValue("", "inputs[0].stream"),
+		expected: validation.ErrMissingField("inputs[0].stream"),
 	}, {
 		name: "validates output",
 		target: &ProcessorSpec{
@@ -108,7 +108,7 @@ func TestValidateProcessorSpec(t *testing.T) {
 				{Stream: ""},
 			},
 		},
-		expected: validation.ErrInvalidValue("", "outputs[0].stream"),
+		expected: validation.ErrMissingField("outputs[0].stream"),
 	}} {
 		t.Run(c.name, func(t *testing.T) {
 			actual := c.target.Validate()

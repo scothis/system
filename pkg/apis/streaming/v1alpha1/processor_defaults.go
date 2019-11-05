@@ -30,18 +30,18 @@ func (s *ProcessorSpec) Default() {
 	if s.Inputs == nil {
 		s.Inputs = []StreamBinding{}
 	}
-	for _, input := range s.Inputs {
-		if input.Alias == "" {
-			input.Alias = input.Stream
+	for i := range s.Inputs {
+		if s.Inputs[i].Alias == "" {
+			s.Inputs[i].Alias = s.Inputs[i].Stream
 		}
 	}
 
 	if s.Outputs == nil {
 		s.Outputs = []StreamBinding{}
 	}
-	for _, output := range s.Outputs {
-		if output.Alias == "" {
-			output.Alias = output.Stream
+	for i := range s.Outputs {
+		if s.Outputs[i].Alias == "" {
+			s.Outputs[i].Alias = s.Outputs[i].Stream
 		}
 	}
 }

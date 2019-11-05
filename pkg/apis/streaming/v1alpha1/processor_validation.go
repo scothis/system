@@ -72,14 +72,14 @@ func (s *ProcessorSpec) Validate() validation.FieldErrors {
 	}
 	for i, input := range s.Inputs {
 		if input.Stream == "" {
-			errs = errs.Also(validation.ErrInvalidValue(input.Stream, "stream").ViaFieldIndex("inputs", i))
+			errs = errs.Also(validation.ErrMissingField("stream").ViaFieldIndex("inputs", i))
 		}
 	}
 
 	// outputs are optional
 	for i, output := range s.Outputs {
 		if output.Stream == "" {
-			errs = errs.Also(validation.ErrInvalidValue(output.Stream, "stream").ViaFieldIndex("outputs", i))
+			errs = errs.Also(validation.ErrMissingField("stream").ViaFieldIndex("outputs", i))
 		}
 	}
 
