@@ -509,7 +509,7 @@ func (r *ProcessorReconciler) computeEnvironmentVariables(processor *streamingv1
 func (r *ProcessorReconciler) collectAliases(bindings []streamingv1alpha1.StreamBinding) []string {
 	names := make([]string, len(bindings))
 	for i := range bindings {
-		names[i] = bindings[i].Stream
+		names[i] = bindings[i].Alias
 	}
 	return names
 }
