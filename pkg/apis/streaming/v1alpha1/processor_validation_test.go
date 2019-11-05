@@ -39,7 +39,7 @@ func TestValidateProcessor(t *testing.T) {
 			Spec: ProcessorSpec{
 				FunctionRef: "my-func",
 				Inputs: []StreamBinding{
-					{Stream: "my-stream"},
+					{Stream: "my-stream", Alias: "in"},
 				},
 			},
 		},
@@ -68,7 +68,7 @@ func TestValidateProcessorSpec(t *testing.T) {
 		target: &ProcessorSpec{
 			FunctionRef: "my-func",
 			Inputs: []StreamBinding{
-				{Stream: "my-stream"},
+				{Stream: "my-stream", Alias: "in"},
 			},
 		},
 		expected: validation.FieldErrors{},
@@ -77,7 +77,7 @@ func TestValidateProcessorSpec(t *testing.T) {
 		target: &ProcessorSpec{
 			FunctionRef: "",
 			Inputs: []StreamBinding{
-				{Stream: "my-stream"},
+				{Stream: "my-stream", Alias: "in"},
 			},
 		},
 		expected: validation.ErrMissingField("functionRef"),
@@ -85,30 +85,56 @@ func TestValidateProcessorSpec(t *testing.T) {
 		name: "requires inputs",
 		target: &ProcessorSpec{
 			FunctionRef: "my-func",
-			Inputs:      nil,
 		},
 		expected: validation.ErrMissingField("inputs"),
 	}, {
-		name: "requires valid input",
+		name: "empty input",
 		target: &ProcessorSpec{
 			FunctionRef: "my-func",
 			Inputs: []StreamBinding{
-				{Stream: ""},
+				{},
 			},
 		},
-		expected: validation.ErrMissingField("inputs[0].stream"),
+		expected: validation.FieldErrors{}.Also(
+			validation.ErrMissingField("inputs[0].stream"),
+			validation.ErrMissingField("inputs[0].alias"),
+		),
 	}, {
-		name: "validates output",
+		name: "valid input",
 		target: &ProcessorSpec{
 			FunctionRef: "my-func",
 			Inputs: []StreamBinding{
-				{Stream: "my-stream"},
+				{Stream: "my-stream", Alias: "in"},
+			},
+		},
+		expected: validation.FieldErrors{},
+	}, {
+		name: "empty output",
+		target: &ProcessorSpec{
+			FunctionRef: "my-func",
+			Inputs: []StreamBinding{
+				{Stream: "my-stream", Alias: "in"},
 			},
 			Outputs: []StreamBinding{
-				{Stream: ""},
+				{},
 			},
 		},
-		expected: validation.ErrMissingField("outputs[0].stream"),
+		expected: validation.FieldErrors{}.Also(
+			validation.ErrMissingField("outputs[0].stream"),
+			validation.ErrMissingField("outputs[0].alias"),
+		),
+	}, {
+		name: "valid output",
+		target: &ProcessorSpec{
+			FunctionRef: "my-func",
+			Inputs: []StreamBinding{
+				{Stream: "my-stream", Alias: "my-alias"},
+			},
+			Outputs: []StreamBinding{
+				{Stream: "my-stream", Alias: "my-alias"},
+			},
+		},
+		expected: validation.FieldErrors{},
 	}} {
 		t.Run(c.name, func(t *testing.T) {
 			actual := c.target.Validate()
