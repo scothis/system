@@ -38,7 +38,9 @@ func TestValidateProcessor(t *testing.T) {
 		target: &Processor{
 			Spec: ProcessorSpec{
 				FunctionRef: "my-func",
-				Inputs:      []string{"my-stream"},
+				Inputs: []StreamBinding{
+					{Stream: "my-stream"},
+				},
 			},
 		},
 		expected: validation.FieldErrors{},
@@ -65,14 +67,18 @@ func TestValidateProcessorSpec(t *testing.T) {
 		name: "valid",
 		target: &ProcessorSpec{
 			FunctionRef: "my-func",
-			Inputs:      []string{"my-stream"},
+			Inputs: []StreamBinding{
+				{Stream: "my-stream"},
+			},
 		},
 		expected: validation.FieldErrors{},
 	}, {
 		name: "requires function ref",
 		target: &ProcessorSpec{
 			FunctionRef: "",
-			Inputs:      []string{"my-stream"},
+			Inputs: []StreamBinding{
+				{Stream: "my-stream"},
+			},
 		},
 		expected: validation.ErrMissingField("functionRef"),
 	}, {
@@ -86,17 +92,23 @@ func TestValidateProcessorSpec(t *testing.T) {
 		name: "requires valid input",
 		target: &ProcessorSpec{
 			FunctionRef: "my-func",
-			Inputs:      []string{""},
+			Inputs: []StreamBinding{
+				{Stream: ""},
+			},
 		},
-		expected: validation.ErrInvalidArrayValue("", "inputs", 0),
+		expected: validation.ErrInvalidValue("", "inputs[0].stream"),
 	}, {
 		name: "validates output",
 		target: &ProcessorSpec{
 			FunctionRef: "my-func",
-			Inputs:      []string{"my-stream"},
-			Outputs:     []string{""},
+			Inputs: []StreamBinding{
+				{Stream: "my-stream"},
+			},
+			Outputs: []StreamBinding{
+				{Stream: ""},
+			},
 		},
-		expected: validation.ErrInvalidArrayValue("", "outputs", 0),
+		expected: validation.ErrInvalidValue("", "outputs[0].stream"),
 	}} {
 		t.Run(c.name, func(t *testing.T) {
 			actual := c.target.Validate()
