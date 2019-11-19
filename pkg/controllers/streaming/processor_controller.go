@@ -416,7 +416,7 @@ func (r *ProcessorReconciler) reconcileProcessorDeployment(ctx context.Context, 
 func (r *ProcessorReconciler) constructDeploymentForProcessor(processor *streamingv1alpha1.Processor, processorImg string) (*appsv1.Deployment, error) {
 	labels := r.constructLabelsForProcessor(processor)
 
-	one := int32(1)
+	zero := int32(0)
 	environmentVariables, err := r.computeEnvironmentVariables(processor)
 	if err != nil {
 		return nil, err
@@ -444,7 +444,7 @@ func (r *ProcessorReconciler) constructDeploymentForProcessor(processor *streami
 			Labels:       labels,
 		},
 		Spec: appsv1.DeploymentSpec{
-			Replicas: &one,
+			Replicas: &zero,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					streamingv1alpha1.ProcessorLabelKey: processor.Name,
