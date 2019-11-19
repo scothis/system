@@ -199,9 +199,12 @@ func (r *ProcessorReconciler) reconcile(ctx context.Context, logger logr.Logger,
 
 	processor.Status.MarkStreamsReady()
 	for _, stream := range append(inputStreams, outputStreams...) {
-		if !stream.Status.IsReady() {
-			ready := stream.Status.GetCondition(stream.Status.GetReadyConditionType())
-			processor.Status.MarkStreamsNotReady(fmt.Sprintf("Stream %s is not ready: %s", stream.Name, ready.Message))
+		ready := stream.Status.GetCondition(stream.Status.GetReadyConditionType())
+		if ready == nil {
+			ready = &apis.Condition{Message: "stream has no ready condition"}
+		}
+		if !ready.IsTrue() {
+			processor.Status.MarkStreamsNotReady(fmt.Sprintf("stream %s is not ready: %s", stream.Name, ready.Message))
 			break
 		}
 	}
