@@ -506,16 +506,16 @@ func (r *ProcessorReconciler) resolveStreams(ctx context.Context, processorCoord
 
 func (r *ProcessorReconciler) collectStreamAddresses(streams []streamingv1alpha1.Stream) []string {
 	addresses := make([]string, len(streams))
-	for _, stream := range streams {
-		addresses = append(addresses, stream.Status.Address.String())
+	for i, stream := range streams {
+		addresses[i] = stream.Status.Address.String()
 	}
 	return addresses
 }
 
 func (r *ProcessorReconciler) collectStreamContentTypes(streams []streamingv1alpha1.Stream) []string {
 	contentTypes := make([]string, len(streams))
-	for _, stream := range streams {
-		contentTypes = append(contentTypes, stream.Spec.ContentType)
+	for i, stream := range streams {
+		contentTypes[i] = stream.Spec.ContentType
 	}
 	return contentTypes
 }
