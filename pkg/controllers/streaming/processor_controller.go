@@ -55,6 +55,10 @@ const (
 	processorScaledObjectIndexField = ".metadata.processorScaledObjectController"
 )
 
+const (
+	bindingsRootPath = "/var/riff/bindings"
+)
+
 // ProcessorReconciler reconciles a Processor object
 type ProcessorReconciler struct {
 	client.Client
@@ -189,7 +193,7 @@ func (r *ProcessorReconciler) reconcile(ctx context.Context, logger logr.Logger,
 	processor.Status.DeprecatedOutputContentTypes = r.collectStreamContentTypes(outputStreams)
 
 	// Reconcile deployment for processor
-	deployment, err := r.reconcileProcessorDeployment(ctx, logger, processor, &cm)
+	deployment, err := r.reconcileProcessorDeployment(ctx, logger, processor, append(inputStreams, outputStreams...), &cm)
 	if err != nil {
 		logger.Error(err, "unable to reconcile deployment")
 		return ctrl.Result{}, err
@@ -343,7 +347,7 @@ func (r *ProcessorReconciler) scaledObjectSemanticEquals(desiredDeployment, depl
 		equality.Semantic.DeepEqual(desiredDeployment.ObjectMeta.Labels, deployment.ObjectMeta.Labels)
 }
 
-func (r *ProcessorReconciler) reconcileProcessorDeployment(ctx context.Context, log logr.Logger, processor *streamingv1alpha1.Processor, cm *corev1.ConfigMap) (*appsv1.Deployment, error) {
+func (r *ProcessorReconciler) reconcileProcessorDeployment(ctx context.Context, log logr.Logger, processor *streamingv1alpha1.Processor, streams []streamingv1alpha1.Stream, cm *corev1.ConfigMap) (*appsv1.Deployment, error) {
 	var actualDeployment appsv1.Deployment
 	var childDeployments appsv1.DeploymentList
 	if err := r.List(ctx, &childDeployments, client.InNamespace(processor.Namespace), client.MatchingField(processorDeploymentIndexField, processor.Name)); err != nil {
@@ -367,7 +371,7 @@ func (r *ProcessorReconciler) reconcileProcessorDeployment(ctx context.Context, 
 		return nil, fmt.Errorf("missing processor image configuration")
 	}
 
-	desiredDeployment, err := r.constructDeploymentForProcessor(processor, processorImg)
+	desiredDeployment, err := r.constructDeploymentForProcessor(processor, streams, processorImg)
 	if err != nil {
 		return nil, err
 	}
@@ -413,13 +417,55 @@ func (r *ProcessorReconciler) reconcileProcessorDeployment(ctx context.Context, 
 	return deployment, nil
 }
 
-func (r *ProcessorReconciler) constructDeploymentForProcessor(processor *streamingv1alpha1.Processor, processorImg string) (*appsv1.Deployment, error) {
+func (r *ProcessorReconciler) constructDeploymentForProcessor(processor *streamingv1alpha1.Processor, streams []streamingv1alpha1.Stream, processorImg string) (*appsv1.Deployment, error) {
 	labels := r.constructLabelsForProcessor(processor)
 
 	zero := int32(0)
 	environmentVariables, err := r.computeEnvironmentVariables(processor)
 	if err != nil {
 		return nil, err
+	}
+
+	volumes := []corev1.Volume{}
+	volumeMounts := []corev1.VolumeMount{}
+	for _, stream := range streams {
+		if !stream.Status.IsReady() {
+			continue
+		}
+		metadataVolumeName := fmt.Sprintf("processor-stream-%s-metadata", stream.Name)
+		secretVolumeName := fmt.Sprintf("processor-stream-%s-secret", stream.Name)
+		volumes = append(volumes,
+			corev1.Volume{
+				Name: metadataVolumeName,
+				VolumeSource: corev1.VolumeSource{
+					ConfigMap: &corev1.ConfigMapVolumeSource{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: stream.Status.Binding.MetadataRef.Name,
+						},
+					},
+				},
+			},
+			corev1.Volume{
+				Name: secretVolumeName,
+				VolumeSource: corev1.VolumeSource{
+					Secret: &corev1.SecretVolumeSource{
+						SecretName: stream.Status.Binding.SecretRef.Name,
+					},
+				},
+			},
+		)
+		volumeMounts = append(volumeMounts,
+			corev1.VolumeMount{
+				Name:      metadataVolumeName,
+				MountPath: fmt.Sprintf("%s/%s/metadata", bindingsRootPath, stream.Name),
+				ReadOnly:  true,
+			},
+			corev1.VolumeMount{
+				Name:      secretVolumeName,
+				MountPath: fmt.Sprintf("%s/%s/secret", bindingsRootPath, stream.Name),
+				ReadOnly:  true,
+			},
+		)
 	}
 
 	// merge provided template with controlled values
@@ -435,7 +481,9 @@ func (r *ProcessorReconciler) constructDeploymentForProcessor(processor *streami
 		Image:           processorImg,
 		ImagePullPolicy: v1.PullAlways,
 		Env:             environmentVariables,
+		VolumeMounts:    volumeMounts,
 	})
+	podSpec.Volumes = append(podSpec.Volumes, volumes...)
 
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -529,10 +577,16 @@ func (r *ProcessorReconciler) computeEnvironmentVariables(processor *streamingv1
 	outputsNames := r.collectAliases(processor.Spec.Outputs)
 	return []v1.EnvVar{
 		{
+			Name:  "CNB_BINDINGS",
+			Value: bindingsRootPath,
+		},
+		{
+			// TODO remove once the processor images consumes bindings
 			Name:  "INPUTS",
 			Value: strings.Join(processor.Status.DeprecatedInputAddresses, ","),
 		},
 		{
+			// TODO remove once the processor images consumes bindings
 			Name:  "OUTPUTS",
 			Value: strings.Join(processor.Status.DeprecatedOutputAddresses, ","),
 		},
@@ -553,6 +607,7 @@ func (r *ProcessorReconciler) computeEnvironmentVariables(processor *streamingv1
 			Value: "localhost:8081",
 		},
 		{
+			// TODO remove once the processor images consumes bindings
 			Name:  "OUTPUT_CONTENT_TYPES",
 			Value: string(contentTypesJson),
 		},

@@ -217,9 +217,12 @@ func (r *StreamReconciler) constructBindingMetadata(stream *streamingv1alpha1.St
 			Namespace:   stream.Namespace,
 		},
 		Data: map[string]string{
+			// spec required values
 			"kind":     (&streamingv1alpha1.Stream{}).GetGroupVersionKind().GroupKind().String(),
 			"provider": stream.Name,
 			"tags":     "",
+			// non-spec values
+			"contentType": stream.Spec.ContentType,
 		},
 	}
 	if err := ctrl.SetControllerReference(stream, metadata, r.Scheme); err != nil {
