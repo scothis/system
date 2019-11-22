@@ -178,15 +178,15 @@ func (r *ProcessorReconciler) reconcile(ctx context.Context, logger logr.Logger,
 	if err != nil {
 		return ctrl.Result{Requeue: true}, err
 	}
-	processor.Status.InputAddresses = r.collectStreamAddresses(inputStreams)
+	processor.Status.DeprecatedInputAddresses = r.collectStreamAddresses(inputStreams)
 
 	// Resolve output addresses
 	outputStreams, err := r.resolveStreams(ctx, processorNSName, processor.Spec.Outputs)
 	if err != nil {
 		return ctrl.Result{Requeue: true}, err
 	}
-	processor.Status.OutputAddresses = r.collectStreamAddresses(outputStreams)
-	processor.Status.OutputContentTypes = r.collectStreamContentTypes(outputStreams)
+	processor.Status.DeprecatedOutputAddresses = r.collectStreamAddresses(outputStreams)
+	processor.Status.DeprecatedOutputContentTypes = r.collectStreamContentTypes(outputStreams)
 
 	// Reconcile deployment for processor
 	deployment, err := r.reconcileProcessorDeployment(ctx, logger, processor, &cm)
@@ -326,8 +326,8 @@ func (r *ProcessorReconciler) constructScaledObjectForProcessor(processor *strea
 }
 
 func triggers(proc *streamingv1alpha1.Processor) []kedav1alpha1.ScaleTriggers {
-	result := make([]kedav1alpha1.ScaleTriggers, len(proc.Status.InputAddresses))
-	for i, topic := range proc.Status.InputAddresses {
+	result := make([]kedav1alpha1.ScaleTriggers, len(proc.Status.DeprecatedInputAddresses))
+	for i, topic := range proc.Status.DeprecatedInputAddresses {
 		result[i].Type = "liiklus"
 		result[i].Metadata = map[string]string{
 			"address": strings.SplitN(topic, "/", 2)[0],
@@ -521,7 +521,7 @@ func (r *ProcessorReconciler) collectStreamContentTypes(streams []streamingv1alp
 }
 
 func (r *ProcessorReconciler) computeEnvironmentVariables(processor *streamingv1alpha1.Processor) ([]v1.EnvVar, error) {
-	contentTypesJson, err := json.Marshal(processor.Status.OutputContentTypes)
+	contentTypesJson, err := json.Marshal(processor.Status.DeprecatedOutputContentTypes)
 	if err != nil {
 		return nil, err
 	}
@@ -530,11 +530,11 @@ func (r *ProcessorReconciler) computeEnvironmentVariables(processor *streamingv1
 	return []v1.EnvVar{
 		{
 			Name:  "INPUTS",
-			Value: strings.Join(processor.Status.InputAddresses, ","),
+			Value: strings.Join(processor.Status.DeprecatedInputAddresses, ","),
 		},
 		{
 			Name:  "OUTPUTS",
-			Value: strings.Join(processor.Status.OutputAddresses, ","),
+			Value: strings.Join(processor.Status.DeprecatedOutputAddresses, ","),
 		},
 		{
 			Name:  "INPUT_NAMES",
