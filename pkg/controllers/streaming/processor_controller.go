@@ -429,43 +429,48 @@ func (r *ProcessorReconciler) constructDeploymentForProcessor(processor *streami
 	volumes := []corev1.Volume{}
 	volumeMounts := []corev1.VolumeMount{}
 	for _, stream := range streams {
-		if !stream.Status.IsReady() {
-			continue
-		}
-		metadataVolumeName := fmt.Sprintf("processor-stream-%s-metadata", stream.Name)
-		secretVolumeName := fmt.Sprintf("processor-stream-%s-secret", stream.Name)
-		volumes = append(volumes,
-			corev1.Volume{
-				Name: metadataVolumeName,
-				VolumeSource: corev1.VolumeSource{
-					ConfigMap: &corev1.ConfigMapVolumeSource{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: stream.Status.Binding.MetadataRef.Name,
+		if stream.Status.Binding.MetadataRef.Name != "" {
+			metadataVolumeName := fmt.Sprintf("processor-stream-%s-metadata", stream.Name)
+			volumes = append(volumes,
+				corev1.Volume{
+					Name: metadataVolumeName,
+					VolumeSource: corev1.VolumeSource{
+						ConfigMap: &corev1.ConfigMapVolumeSource{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: stream.Status.Binding.MetadataRef.Name,
+							},
 						},
 					},
 				},
-			},
-			corev1.Volume{
-				Name: secretVolumeName,
-				VolumeSource: corev1.VolumeSource{
-					Secret: &corev1.SecretVolumeSource{
-						SecretName: stream.Status.Binding.SecretRef.Name,
+			)
+			volumeMounts = append(volumeMounts,
+				corev1.VolumeMount{
+					Name:      metadataVolumeName,
+					MountPath: fmt.Sprintf("%s/%s/metadata", bindingsRootPath, stream.Name),
+					ReadOnly:  true,
+				},
+			)
+		}
+		if stream.Status.Binding.SecretRef.Name != "" {
+			secretVolumeName := fmt.Sprintf("processor-stream-%s-secret", stream.Name)
+			volumes = append(volumes,
+				corev1.Volume{
+					Name: secretVolumeName,
+					VolumeSource: corev1.VolumeSource{
+						Secret: &corev1.SecretVolumeSource{
+							SecretName: stream.Status.Binding.SecretRef.Name,
+						},
 					},
 				},
-			},
-		)
-		volumeMounts = append(volumeMounts,
-			corev1.VolumeMount{
-				Name:      metadataVolumeName,
-				MountPath: fmt.Sprintf("%s/%s/metadata", bindingsRootPath, stream.Name),
-				ReadOnly:  true,
-			},
-			corev1.VolumeMount{
-				Name:      secretVolumeName,
-				MountPath: fmt.Sprintf("%s/%s/secret", bindingsRootPath, stream.Name),
-				ReadOnly:  true,
-			},
-		)
+			)
+			volumeMounts = append(volumeMounts,
+				corev1.VolumeMount{
+					Name:      secretVolumeName,
+					MountPath: fmt.Sprintf("%s/%s/secret", bindingsRootPath, stream.Name),
+					ReadOnly:  true,
+				},
+			)
+		}
 	}
 
 	// merge provided template with controlled values
