@@ -432,7 +432,7 @@ func (r *ProcessorReconciler) constructDeploymentForProcessor(processor *streami
 	streamBindings := append(processor.Spec.Inputs, processor.Spec.Outputs...)
 	for i, stream := range streams {
 		if stream.Status.Binding.MetadataRef.Name != "" {
-			metadataVolumeName := fmt.Sprintf("processor-stream-%s-metadata", stream.Name)
+			metadataVolumeName := fmt.Sprintf("processor-stream-%s-metadata", streamBindings[i].Alias)
 			volumes = append(volumes,
 				corev1.Volume{
 					Name: metadataVolumeName,
@@ -454,7 +454,7 @@ func (r *ProcessorReconciler) constructDeploymentForProcessor(processor *streami
 			)
 		}
 		if stream.Status.Binding.SecretRef.Name != "" {
-			secretVolumeName := fmt.Sprintf("processor-stream-%s-secret", stream.Name)
+			secretVolumeName := fmt.Sprintf("processor-stream-%s-secret", streamBindings[i].Alias)
 			volumes = append(volumes,
 				corev1.Volume{
 					Name: secretVolumeName,
