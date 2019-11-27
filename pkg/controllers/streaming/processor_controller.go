@@ -202,7 +202,10 @@ func (r *ProcessorReconciler) reconcile(ctx context.Context, logger logr.Logger,
 	processor.Status.PropagateDeploymentStatus(&deployment.Status)
 
 	processor.Status.MarkStreamsReady()
-	for _, stream := range append(inputStreams, outputStreams...) {
+	streams := []streamingv1alpha1.Stream{}
+	streams = append(streams, inputStreams...)
+	streams = append(streams, outputStreams...)
+	for _, stream := range streams {
 		ready := stream.Status.GetCondition(stream.Status.GetReadyConditionType())
 		if ready == nil {
 			ready = &apis.Condition{Message: "stream has no ready condition"}
@@ -428,8 +431,12 @@ func (r *ProcessorReconciler) constructDeploymentForProcessor(processor *streami
 
 	volumes := []corev1.Volume{}
 	volumeMounts := []corev1.VolumeMount{}
-	streams := append(inputStreams, outputStreams...)
-	streamBindings := append(processor.Spec.Inputs, processor.Spec.Outputs...)
+	streams := []streamingv1alpha1.Stream{}
+	streams = append(streams, inputStreams...)
+	streams = append(streams, outputStreams...)
+	streamBindings := []streamingv1alpha1.StreamBinding{}
+	streamBindings = append(streamBindings, processor.Spec.Inputs...)
+	streamBindings = append(streamBindings, processor.Spec.Outputs...)
 	for i, stream := range streams {
 		if stream.Status.Binding.MetadataRef.Name != "" {
 			metadataVolumeName := fmt.Sprintf("processor-stream-%s-metadata", streamBindings[i].Alias)
@@ -539,8 +546,8 @@ func (r *ProcessorReconciler) deploymentSemanticEquals(desiredDeployment, deploy
 }
 
 func (r *ProcessorReconciler) resolveStreams(ctx context.Context, processorCoordinates types.NamespacedName, bindings []streamingv1alpha1.StreamBinding) ([]streamingv1alpha1.Stream, error) {
-	streams := []streamingv1alpha1.Stream{}
-	for _, binding := range bindings {
+	streams := make([]streamingv1alpha1.Stream, len(bindings))
+	for i, binding := range bindings {
 		streamNSName := types.NamespacedName{
 			Namespace: processorCoordinates.Namespace,
 			Name:      binding.Stream,
@@ -554,7 +561,7 @@ func (r *ProcessorReconciler) resolveStreams(ctx context.Context, processorCoord
 		if err := r.Client.Get(ctx, streamNSName, &stream); err != nil {
 			return nil, err
 		}
-		streams = append(streams, stream)
+		streams[i] = stream
 	}
 	return streams, nil
 }
