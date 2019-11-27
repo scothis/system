@@ -219,9 +219,10 @@ func (r *StreamReconciler) constructBindingMetadata(stream *streamingv1alpha1.St
 		Data: map[string]string{
 			// spec required values
 			"kind":     (&streamingv1alpha1.Stream{}).GetGroupVersionKind().GroupKind().String(),
-			"provider": stream.Name,
+			"provider": "riff Streaming",
 			"tags":     "",
 			// non-spec values
+			"stream":      stream.Name,
 			"contentType": stream.Spec.ContentType,
 		},
 	}
