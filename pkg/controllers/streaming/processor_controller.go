@@ -431,15 +431,17 @@ func (r *ProcessorReconciler) constructDeploymentForProcessor(processor *streami
 
 	volumes := []corev1.Volume{}
 	volumeMounts := []corev1.VolumeMount{}
-	streams := []streamingv1alpha1.Stream{}
-	streams = append(streams, inputStreams...)
-	streams = append(streams, outputStreams...)
-	streamBindings := []streamingv1alpha1.StreamBinding{}
-	streamBindings = append(streamBindings, processor.Spec.Inputs...)
-	streamBindings = append(streamBindings, processor.Spec.Outputs...)
-	for i, stream := range streams {
+	// De-dupe streams and create one volume for each
+	streams := make(map[string]streamingv1alpha1.Stream)
+	for _, s := range inputStreams {
+		streams[s.Name] = s
+	}
+	for _, s := range outputStreams {
+		streams[s.Name] = s
+	}
+	for _, stream := range streams {
 		if stream.Status.Binding.MetadataRef.Name != "" {
-			metadataVolumeName := fmt.Sprintf("processor-stream-%s-metadata", streamBindings[i].Alias)
+			metadataVolumeName := fmt.Sprintf("processor-stream-%s-metadata", stream.Name)
 			volumes = append(volumes,
 				corev1.Volume{
 					Name: metadataVolumeName,
@@ -452,16 +454,9 @@ func (r *ProcessorReconciler) constructDeploymentForProcessor(processor *streami
 					},
 				},
 			)
-			volumeMounts = append(volumeMounts,
-				corev1.VolumeMount{
-					Name:      metadataVolumeName,
-					MountPath: fmt.Sprintf("%s/%s/metadata", bindingsRootPath, streamBindings[i].Alias),
-					ReadOnly:  true,
-				},
-			)
 		}
 		if stream.Status.Binding.SecretRef.Name != "" {
-			secretVolumeName := fmt.Sprintf("processor-stream-%s-secret", streamBindings[i].Alias)
+			secretVolumeName := fmt.Sprintf("processor-stream-%s-secret", stream.Name)
 			volumes = append(volumes,
 				corev1.Volume{
 					Name: secretVolumeName,
@@ -472,10 +467,51 @@ func (r *ProcessorReconciler) constructDeploymentForProcessor(processor *streami
 					},
 				},
 			)
+		}
+	}
+	// Create one volume mount for each *binding*, split into inputs/outputs.
+	// The consumer of those will know to count from 0..Nbindings-1 thanks to the INPUT/OUTPUT_NAMES var
+	for i, binding := range processor.Spec.Inputs {
+		stream := streams[binding.Stream]
+		if stream.Status.Binding.MetadataRef.Name != "" {
+			metadataVolumeName := fmt.Sprintf("processor-stream-%s-metadata", stream.Name)
+			volumeMounts = append(volumeMounts,
+				corev1.VolumeMount{
+					Name:      metadataVolumeName,
+					MountPath: fmt.Sprintf("%s/input_%03d/metadata", bindingsRootPath, i),
+					ReadOnly:  true,
+				},
+			)
+		}
+		if stream.Status.Binding.SecretRef.Name != "" {
+			secretVolumeName := fmt.Sprintf("processor-stream-%s-secret", stream.Name)
 			volumeMounts = append(volumeMounts,
 				corev1.VolumeMount{
 					Name:      secretVolumeName,
-					MountPath: fmt.Sprintf("%s/%s/secret", bindingsRootPath, streamBindings[i].Alias),
+					MountPath: fmt.Sprintf("%s/input_%03d/secret", bindingsRootPath, i),
+					ReadOnly:  true,
+				},
+			)
+		}
+	}
+	for i, binding := range processor.Spec.Outputs {
+		stream := streams[binding.Stream]
+		if stream.Status.Binding.MetadataRef.Name != "" {
+			metadataVolumeName := fmt.Sprintf("processor-stream-%s-metadata", stream.Name)
+			volumeMounts = append(volumeMounts,
+				corev1.VolumeMount{
+					Name:      metadataVolumeName,
+					MountPath: fmt.Sprintf("%s/output_%03d/metadata", bindingsRootPath, i),
+					ReadOnly:  true,
+				},
+			)
+		}
+		if stream.Status.Binding.SecretRef.Name != "" {
+			secretVolumeName := fmt.Sprintf("processor-stream-%s-secret", stream.Name)
+			volumeMounts = append(volumeMounts,
+				corev1.VolumeMount{
+					Name:      secretVolumeName,
+					MountPath: fmt.Sprintf("%s/output_%03d/secret", bindingsRootPath, i),
 					ReadOnly:  true,
 				},
 			)
