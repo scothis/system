@@ -31,6 +31,7 @@ import (
 	buildv1alpha1 "github.com/projectriff/system/pkg/apis/build/v1alpha1"
 	streamingv1alpha1 "github.com/projectriff/system/pkg/apis/streaming/v1alpha1"
 	kedav1alpha1 "github.com/projectriff/system/pkg/apis/thirdparty/keda/v1alpha1"
+	"github.com/projectriff/system/pkg/controllers"
 	rtesting "github.com/projectriff/system/pkg/controllers/testing"
 	"github.com/projectriff/system/pkg/controllers/testing/factories"
 	"github.com/projectriff/system/pkg/tracker"
@@ -44,15 +45,16 @@ func TestReconcile(t *testing.T) {
 	_ = buildv1alpha1.AddToScheme(scheme)
 
 	const (
-		testSha256         = "faa5faa5faa5faa5faa5faa5faa5faa5faa5faa5faa5faa5faa5faa5faa5faa5"
-		testNamespace      = "test-namespace"
-		testName           = "test-processor"
-		testProcessorImage = "test-processor-image@sha256:" + testSha256
-		testDefaultImage   = "test-default-image@sha256:" + testSha256
-		testFunction       = "test-function"
-		testFunctionImage  = "test-function-image@sha256:" + testSha256
-		testContainer      = "test-container"
-		testContainerImage = "test-container-image@sha256:" + testSha256
+		testSha256          = "faa5faa5faa5faa5faa5faa5faa5faa5faa5faa5faa5faa5faa5faa5faa5faa5"
+		testNamespace       = "test-namespace"
+		testSystemNamespace = "riff-system"
+		testName            = "test-processor"
+		testProcessorImage  = "test-processor-image@sha256:" + testSha256
+		testDefaultImage    = "test-default-image@sha256:" + testSha256
+		testFunction        = "test-function"
+		testFunctionImage   = "test-function-image@sha256:" + testSha256
+		testContainer       = "test-container"
+		testContainerImage  = "test-container-image@sha256:" + testSha256
 	)
 
 	processorGiven := factories.Processor().
@@ -532,13 +534,15 @@ func TestReconcile(t *testing.T) {
 	}}
 
 	table.Test(t, scheme, func(t *testing.T, row *rtesting.Testcase, client client.Client, tracker tracker.Tracker, recorder record.EventRecorder, log logr.Logger) reconcile.Reconciler {
-		return &ProcessorReconciler{
-			Client:    client,
-			Recorder:  recorder,
-			Log:       log,
-			Scheme:    scheme,
-			Tracker:   tracker,
-			Namespace: testNamespace,
-		}
+		return ProcessorReconciler(
+			controllers.Config{
+				Client:   client,
+				Recorder: recorder,
+				Log:      log,
+				Scheme:   scheme,
+				Tracker:  tracker,
+			},
+			testSystemNamespace,
+		)
 	})
 }
