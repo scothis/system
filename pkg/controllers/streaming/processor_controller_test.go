@@ -370,7 +370,7 @@ func TestReconcile(t *testing.T) {
 		Key:  types.NamespacedName{Namespace: testNamespace, Name: testName},
 		GivenObjects: []rtesting.Factory{
 			processorGiven.
-				SpecBuildFunctionRef(testFunction),
+				BuildFunctionRef(testFunction),
 			imageNamesConfigMapGiven,
 		},
 		ExpectTracks: []rtesting.TrackRequest{
@@ -395,7 +395,7 @@ func TestReconcile(t *testing.T) {
 		Key:  types.NamespacedName{Namespace: testNamespace, Name: testName},
 		GivenObjects: []rtesting.Factory{
 			processorGiven.
-				SpecBuildFunctionRef(testFunction),
+				BuildFunctionRef(testFunction),
 			imageNamesConfigMapGiven,
 			functionGiven,
 		},
@@ -412,7 +412,7 @@ func TestReconcile(t *testing.T) {
 		Key:  types.NamespacedName{Namespace: testNamespace, Name: testName},
 		GivenObjects: []rtesting.Factory{
 			processorGiven.
-				SpecBuildFunctionRef(testFunction),
+				BuildFunctionRef(testFunction),
 			imageNamesConfigMapGiven,
 			functionGiven.
 				StatusLatestImage(testFunctionImage),
@@ -454,7 +454,7 @@ func TestReconcile(t *testing.T) {
 		Key:  types.NamespacedName{Namespace: testNamespace, Name: testName},
 		GivenObjects: []rtesting.Factory{
 			processorGiven.
-				SpecBuildContainerRef(testContainer),
+				BuildContainerRef(testContainer),
 			imageNamesConfigMapGiven,
 		},
 		ExpectTracks: []rtesting.TrackRequest{
@@ -479,7 +479,7 @@ func TestReconcile(t *testing.T) {
 		Key:  types.NamespacedName{Namespace: testNamespace, Name: testName},
 		GivenObjects: []rtesting.Factory{
 			processorGiven.
-				SpecBuildContainerRef(testContainer),
+				BuildContainerRef(testContainer),
 			imageNamesConfigMapGiven,
 		},
 		WithReactors: []rtesting.ReactionFunc{
@@ -495,7 +495,7 @@ func TestReconcile(t *testing.T) {
 		Key:  types.NamespacedName{Namespace: testNamespace, Name: testName},
 		GivenObjects: []rtesting.Factory{
 			processorGiven.
-				SpecBuildContainerRef(testContainer),
+				BuildContainerRef(testContainer),
 			imageNamesConfigMapGiven,
 			containerGiven,
 		},

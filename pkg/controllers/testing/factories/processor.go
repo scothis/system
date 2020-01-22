@@ -79,6 +79,22 @@ func (f *processor) ObjectMeta(nf func(ObjectMeta)) *processor {
 	})
 }
 
+func (f *processor) BuildFunctionRef(functionName string) *processor {
+	return f.mutation(func(proc *streamingv1alpha1.Processor) {
+		proc.Spec.Build = &streamingv1alpha1.Build{
+			FunctionRef: functionName,
+		}
+	})
+}
+
+func (f *processor) BuildContainerRef(containerName string) *processor {
+	return f.mutation(func(proc *streamingv1alpha1.Processor) {
+		proc.Spec.Build = &streamingv1alpha1.Build{
+			ContainerRef: containerName,
+		}
+	})
+}
+
 func (f *processor) PodTemplateSpec(nf func(PodTemplateSpec)) *processor {
 	return f.mutation(func(processor *streamingv1alpha1.Processor) {
 		var ptsf *podTemplateSpecImpl
@@ -121,22 +137,6 @@ func (f *processor) StatusDeploymentRef(deploymentName string) *processor {
 			APIGroup: rtesting.StringPtr("apps"),
 			Kind:     "Deployment",
 			Name:     deploymentName,
-		}
-	})
-}
-
-func (f *processor) SpecBuildFunctionRef(functionName string) *processor {
-	return f.mutation(func(proc *streamingv1alpha1.Processor) {
-		proc.Spec.Build = &streamingv1alpha1.Build{
-			FunctionRef: functionName,
-		}
-	})
-}
-
-func (f *processor) SpecBuildContainerRef(containerName string) *processor {
-	return f.mutation(func(proc *streamingv1alpha1.Processor) {
-		proc.Spec.Build = &streamingv1alpha1.Build{
-			ContainerRef: containerName,
 		}
 	})
 }
