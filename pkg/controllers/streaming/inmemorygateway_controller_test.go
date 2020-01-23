@@ -120,7 +120,7 @@ func TestInMemoryGatewayReconciler(t *testing.T) {
 		})
 
 	table := rtesting.Table{{
-		Name: "adapter does not exist",
+		Name: "inmemorygateway does not exist",
 		Key:  testKey,
 	}, {
 		Name: "ignore deleted inmemorygateway",

@@ -124,7 +124,7 @@ func TestPulsarGatewayReconciler(t *testing.T) {
 		})
 
 	table := rtesting.Table{{
-		Name: "adapter does not exist",
+		Name: "pulsargateway does not exist",
 		Key:  testKey,
 	}, {
 		Name: "ignore deleted pulsargateway",

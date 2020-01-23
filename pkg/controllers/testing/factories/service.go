@@ -91,3 +91,9 @@ func (f *service) Ports(ports ...corev1.ServicePort) *service {
 		service.Spec.Ports = ports
 	})
 }
+
+func (f *service) ClusterIP(ip string) *service {
+	return f.mutation(func(service *corev1.Service) {
+		service.Spec.ClusterIP = ip
+	})
+}

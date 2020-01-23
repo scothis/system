@@ -124,7 +124,7 @@ func TestKafkaGatewayReconciler(t *testing.T) {
 		})
 
 	table := rtesting.Table{{
-		Name: "adapter does not exist",
+		Name: "kafkagateway does not exist",
 		Key:  testKey,
 	}, {
 		Name: "ignore deleted kafkagateway",
