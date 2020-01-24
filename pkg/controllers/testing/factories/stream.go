@@ -61,6 +61,21 @@ func (f *stream) CreateObject() apis.Object {
 	return f.Create()
 }
 
+func (f *stream) CreateInputStreamBinding(alias, startOffset string) streamingv1alpha1.InputStreamBinding {
+	return streamingv1alpha1.InputStreamBinding{
+		Stream:      f.target.Name,
+		Alias:       alias,
+		StartOffset: startOffset,
+	}
+}
+
+func (f *stream) CreateOutputStreamBinding(alias string) streamingv1alpha1.OutputStreamBinding {
+	return streamingv1alpha1.OutputStreamBinding{
+		Stream: f.target.Name,
+		Alias:  alias,
+	}
+}
+
 func (f *stream) mutation(m func(*streamingv1alpha1.Stream)) *stream {
 	f = f.deepCopy()
 	m(f.target)

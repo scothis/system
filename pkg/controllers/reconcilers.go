@@ -79,7 +79,7 @@ func (r *ParentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func (r *ParentReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	ctx := withStash(context.Background())
+	ctx := WithStash(context.Background())
 	log := r.Log.WithValues("request", req.NamespacedName)
 
 	originalParent := r.Type.DeepCopyObject().(apis.Object)

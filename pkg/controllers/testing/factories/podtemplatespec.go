@@ -26,6 +26,7 @@ type PodTemplateSpec interface {
 	AddLabel(key, value string) PodTemplateSpec
 	AddAnnotation(key, value string) PodTemplateSpec
 	ContainerNamed(name string, cb func(*corev1.Container)) PodTemplateSpec
+	Volumes(volumes ...corev1.Volume) PodTemplateSpec
 }
 
 type podTemplateSpecImpl struct {
@@ -89,5 +90,11 @@ func (f *podTemplateSpecImpl) ContainerNamed(name string, cb func(*corev1.Contai
 			}
 			pts.Spec.Containers = append(pts.Spec.Containers, container)
 		}
+	})
+}
+
+func (f *podTemplateSpecImpl) Volumes(volumes ...corev1.Volume) PodTemplateSpec {
+	return f.mutate(func(pts *corev1.PodTemplateSpec) {
+		pts.Spec.Volumes = volumes
 	})
 }

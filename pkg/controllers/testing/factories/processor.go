@@ -68,6 +68,12 @@ func (f *processor) mutation(m func(*streamingv1alpha1.Processor)) *processor {
 	return f
 }
 
+func (f *processor) Default() *processor {
+	return f.mutation(func(p *streamingv1alpha1.Processor) {
+		p.Default()
+	})
+}
+
 func (f *processor) NamespaceName(namespace, name string) *processor {
 	return f.mutation(func(p *streamingv1alpha1.Processor) {
 		p.ObjectMeta.Namespace = namespace
@@ -83,18 +89,18 @@ func (f *processor) ObjectMeta(nf func(ObjectMeta)) *processor {
 	})
 }
 
-func (f *processor) BuildFunctionRef(functionName string) *processor {
+func (f *processor) BuildFunctionRef(function *function) *processor {
 	return f.mutation(func(proc *streamingv1alpha1.Processor) {
 		proc.Spec.Build = &streamingv1alpha1.Build{
-			FunctionRef: functionName,
+			FunctionRef: function.Create().Name,
 		}
 	})
 }
 
-func (f *processor) BuildContainerRef(containerName string) *processor {
+func (f *processor) BuildContainerRef(container *container) *processor {
 	return f.mutation(func(proc *streamingv1alpha1.Processor) {
 		proc.Spec.Build = &streamingv1alpha1.Build{
-			ContainerRef: containerName,
+			ContainerRef: container.Create().Name,
 		}
 	})
 }
@@ -104,6 +110,18 @@ func (f *processor) Image(image string) *processor {
 		pts.ContainerNamed("function", func(c *corev1.Container) {
 			c.Image = image
 		})
+	})
+}
+
+func (f *processor) Inputs(inputs ...streamingv1alpha1.InputStreamBinding) *processor {
+	return f.mutation(func(proc *streamingv1alpha1.Processor) {
+		proc.Spec.Inputs = inputs
+	})
+}
+
+func (f *processor) Outputs(outputs ...streamingv1alpha1.OutputStreamBinding) *processor {
+	return f.mutation(func(proc *streamingv1alpha1.Processor) {
+		proc.Spec.Outputs = outputs
 	})
 }
 

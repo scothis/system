@@ -24,7 +24,7 @@ const stashNonce string = "controller-stash-nonce"
 
 type stashMap map[StashKey]interface{}
 
-func withStash(ctx context.Context) context.Context {
+func WithStash(ctx context.Context) context.Context {
 	return context.WithValue(ctx, stashNonce, stashMap{})
 }
 

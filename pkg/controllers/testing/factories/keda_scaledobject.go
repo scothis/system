@@ -92,6 +92,12 @@ func (f *kedaScaledObject) ScaleTargetRefDeployment(format string, a ...interfac
 	})
 }
 
+func (f *kedaScaledObject) Triggers(triggers ...kedav1alpha1.ScaleTriggers) *kedaScaledObject {
+	return f.mutation(func(s *kedav1alpha1.ScaledObject) {
+		s.Spec.Triggers = triggers
+	})
+}
+
 func (f *kedaScaledObject) PollingInterval(pollingInterval int32) *kedaScaledObject {
 	return f.mutation(func(s *kedav1alpha1.ScaledObject) {
 		s.Spec.PollingInterval = &pollingInterval

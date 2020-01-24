@@ -46,9 +46,9 @@ const (
 )
 
 const (
-	processorImagesStashKey controllers.StashKey = "processor-images"
-	inputStreamsStashKey    controllers.StashKey = "input-streams"
-	outputStreamsStashKey   controllers.StashKey = "output-streams"
+	ProcessorImagesStashKey controllers.StashKey = "processor-images"
+	InputStreamsStashKey    controllers.StashKey = "input-streams"
+	OutputStreamsStashKey   controllers.StashKey = "output-streams"
 )
 
 // +kubebuilder:rbac:groups=streaming.projectriff.io,resources=processors,verbs=get;list;watch;create;update;patch;delete
@@ -93,7 +93,7 @@ func ProcessorSyncProcessorImages(c controllers.Config, namespace string) contro
 			if err := c.Get(ctx, key, &config); err != nil {
 				return err
 			}
-			controllers.StashValue(ctx, processorImagesStashKey, config.Data)
+			controllers.StashValue(ctx, ProcessorImagesStashKey, config.Data)
 			return nil
 		},
 
@@ -158,7 +158,7 @@ func ProcessorBuildRefReconciler(c controllers.Config) controllers.SubReconciler
 
 			}
 
-			return fmt.Errorf("invalid adapter build")
+			panic(fmt.Errorf("invalid processor build"))
 		},
 
 		Config: c,
@@ -203,7 +203,7 @@ func ProcessorResolveStreamsReconciler(c controllers.Config) controllers.SubReco
 				}
 				inputStreams[i] = *stream
 			}
-			controllers.StashValue(ctx, inputStreamsStashKey, inputStreams)
+			controllers.StashValue(ctx, InputStreamsStashKey, inputStreams)
 
 			outputStreams := make([]streamingv1alpha1.Stream, len(processor.Spec.Outputs))
 			for i, binding := range processor.Spec.Outputs {
@@ -214,7 +214,7 @@ func ProcessorResolveStreamsReconciler(c controllers.Config) controllers.SubReco
 				}
 				outputStreams[i] = *stream
 			}
-			controllers.StashValue(ctx, outputStreamsStashKey, outputStreams)
+			controllers.StashValue(ctx, OutputStreamsStashKey, outputStreams)
 
 			streams := []streamingv1alpha1.Stream{}
 			streams = append(streams, inputStreams...)
@@ -393,15 +393,15 @@ func ProcessorChildDeploymentReconciler(c controllers.Config) controllers.SubRec
 				// no image, skip
 				return nil, nil
 			}
-			inputStreams, ok := controllers.RetrieveValue(ctx, inputStreamsStashKey).([]streamingv1alpha1.Stream)
+			inputStreams, ok := controllers.RetrieveValue(ctx, InputStreamsStashKey).([]streamingv1alpha1.Stream)
 			if !ok {
 				return nil, nil
 			}
-			outputStreams, ok := controllers.RetrieveValue(ctx, outputStreamsStashKey).([]streamingv1alpha1.Stream)
+			outputStreams, ok := controllers.RetrieveValue(ctx, OutputStreamsStashKey).([]streamingv1alpha1.Stream)
 			if !ok {
 				return nil, nil
 			}
-			processorImages, ok := controllers.RetrieveValue(ctx, processorImagesStashKey).(map[string]string)
+			processorImages, ok := controllers.RetrieveValue(ctx, ProcessorImagesStashKey).(map[string]string)
 			if !ok {
 				return nil, nil
 			}
@@ -453,9 +453,6 @@ func ProcessorChildDeploymentReconciler(c controllers.Config) controllers.SubRec
 			return child, nil
 		},
 		ReflectChildStatusOnParent: func(parent *streamingv1alpha1.Processor, child *appsv1.Deployment, err error) {
-			if err != nil {
-				return
-			}
 			if child == nil {
 				parent.Status.DeploymentRef = nil
 			} else {
@@ -526,7 +523,7 @@ func ProcessorChildScaledObjectReconciler(c controllers.Config) controllers.SubR
 				// no deployment, skip
 				return nil, nil
 			}
-			inputStreams, ok := controllers.RetrieveValue(ctx, inputStreamsStashKey).([]streamingv1alpha1.Stream)
+			inputStreams, ok := controllers.RetrieveValue(ctx, InputStreamsStashKey).([]streamingv1alpha1.Stream)
 			if !ok {
 				return nil, nil
 			}
@@ -542,7 +539,7 @@ func ProcessorChildScaledObjectReconciler(c controllers.Config) controllers.SubR
 			}
 
 			inputAddresses, err := collectStreamAddresses(ctx, inputStreams)
-			if err != nil {
+			if err != nil || inputAddresses == nil {
 				return nil, err
 			}
 			triggers := make([]kedav1alpha1.ScaleTriggers, len(inputAddresses))
@@ -576,9 +573,6 @@ func ProcessorChildScaledObjectReconciler(c controllers.Config) controllers.SubR
 			return child, nil
 		},
 		ReflectChildStatusOnParent: func(parent *streamingv1alpha1.Processor, child *kedav1alpha1.ScaledObject, err error) {
-			if err != nil {
-				return
-			}
 			if child == nil {
 				parent.Status.ScaledObjectRef = nil
 			} else {
