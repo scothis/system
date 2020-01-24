@@ -114,7 +114,7 @@ endif
 mockery:
 ifeq (, $(shell which mockery))
 	GO111MODULE=off go get -u  github.com/vektra/mockery/.../
-MOCKERY=$(GOBIN)/ko
+MOCKERY=$(GOBIN)/mockery
 else
 MOCKERY=$(shell which mockery)
 endif

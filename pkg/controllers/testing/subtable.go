@@ -23,12 +23,13 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/projectriff/system/pkg/controllers"
-	"github.com/projectriff/system/pkg/tracker"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/projectriff/system/pkg/controllers"
+	"github.com/projectriff/system/pkg/tracker"
 )
 
 // SubTestcase holds a single row of a table test.
