@@ -54,8 +54,12 @@ func (f *processor) deepCopy() *processor {
 	return Processor(f.target.DeepCopy())
 }
 
-func (f *processor) Create() apis.Object {
+func (f *processor) Create() *streamingv1alpha1.Processor {
 	return f.deepCopy().target
+}
+
+func (f *processor) CreateObject() apis.Object {
+	return f.Create()
 }
 
 func (f *processor) mutation(m func(*streamingv1alpha1.Processor)) *processor {
@@ -95,6 +99,14 @@ func (f *processor) BuildContainerRef(containerName string) *processor {
 	})
 }
 
+func (f *processor) Image(image string) *processor {
+	return f.PodTemplateSpec(func(pts PodTemplateSpec) {
+		pts.ContainerNamed("function", func(c *corev1.Container) {
+			c.Image = image
+		})
+	})
+}
+
 func (f *processor) PodTemplateSpec(nf func(PodTemplateSpec)) *processor {
 	return f.mutation(func(processor *streamingv1alpha1.Processor) {
 		var ptsf *podTemplateSpecImpl
@@ -125,28 +137,34 @@ func (f *processor) StatusConditions(conditions ...*condition) *processor {
 	})
 }
 
+func (f *processor) StatusObservedGeneration(generation int64) *processor {
+	return f.mutation(func(proc *streamingv1alpha1.Processor) {
+		proc.Status.ObservedGeneration = generation
+	})
+}
+
 func (f *processor) StatusLatestImage(image string) *processor {
 	return f.mutation(func(proc *streamingv1alpha1.Processor) {
 		proc.Status.LatestImage = image
 	})
 }
 
-func (f *processor) StatusDeploymentRef(deploymentName string) *processor {
+func (f *processor) StatusDeploymentRef(format string, a ...interface{}) *processor {
 	return f.mutation(func(proc *streamingv1alpha1.Processor) {
 		proc.Status.DeploymentRef = &refs.TypedLocalObjectReference{
 			APIGroup: rtesting.StringPtr("apps"),
 			Kind:     "Deployment",
-			Name:     deploymentName,
+			Name:     fmt.Sprintf(format, a...),
 		}
 	})
 }
 
-func (f *processor) StatusScaledObjectRef(deploymentName string) *processor {
+func (f *processor) StatusScaledObjectRef(format string, a ...interface{}) *processor {
 	return f.mutation(func(proc *streamingv1alpha1.Processor) {
 		proc.Status.ScaledObjectRef = &refs.TypedLocalObjectReference{
 			APIGroup: rtesting.StringPtr("keda.k8s.io"),
 			Kind:     "ScaledObject",
-			Name:     deploymentName,
+			Name:     fmt.Sprintf(format, a...),
 		}
 	})
 }

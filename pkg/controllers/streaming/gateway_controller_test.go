@@ -68,13 +68,6 @@ func TestGatewayReconciler(t *testing.T) {
 		StatusDeploymentRef("%s-gateway-000", testName).
 		StatusServiceRef("%s-gateway-000", testName).
 		StatusAddress("http://%s-gateway-000.%s.svc.cluster.local", testName, testNamespace)
-	gatewayReady := gateway.
-		StatusObservedGeneration(1).
-		StatusConditions(
-			gatewayConditionDeploymentReady.True(),
-			gatewayConditionReady.True(),
-			gatewayConditionServiceReady.True(),
-		)
 
 	serviceCreate := factories.Service().
 		ObjectMeta(func(om factories.ObjectMeta) {
@@ -338,6 +331,4 @@ func TestGatewayReconciler(t *testing.T) {
 			},
 		)
 	})
-
-	_ = gatewayReady
 }

@@ -52,8 +52,12 @@ func (f *pulsarGateway) deepCopy() *pulsarGateway {
 	return PulsarGateway(f.target.DeepCopy())
 }
 
-func (f *pulsarGateway) Create() apis.Object {
+func (f *pulsarGateway) Create() *streamingv1alpha1.PulsarGateway {
 	return f.deepCopy().target
+}
+
+func (f *pulsarGateway) CreateObject() apis.Object {
+	return f.Create()
 }
 
 func (f *pulsarGateway) mutation(m func(*streamingv1alpha1.PulsarGateway)) *pulsarGateway {

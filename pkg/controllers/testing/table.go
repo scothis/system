@@ -44,14 +44,17 @@ type Testcase struct {
 	// Skip is true if and only if this test should be skipped.
 	Skip bool
 
+	// inputs
+
 	// Key identifies the object to be reconciled
 	Key types.NamespacedName
-
 	// WithReactors installs each ReactionFunc into each fake clientset. ReactionFuncs intercept
 	// each call to the clientset providing the ability to mutate the resource or inject an error.
 	WithReactors []ReactionFunc
 	// GivenObjects build the kubernetes objects which are present at the onset of reconciliation
 	GivenObjects []Factory
+
+	// side effects
 
 	// ExpectTracks holds the ordered list of Track calls expected during reconciliation
 	ExpectTracks []TrackRequest
@@ -66,12 +69,24 @@ type Testcase struct {
 	// ExpectStatusUpdates builds the ordered list of objects whose status is updated during reconciliation
 	ExpectStatusUpdates []Factory
 
+	// outputs
+
 	// ShouldErr is true if and only if reconciliation is expected to return an error
 	ShouldErr bool
 	// ExpectedResult is compared to the result returned from the reconciler if there was no error
 	ExpectedResult controllerruntime.Result
 	// Verify provides the reconciliation Result and error for custom assertions
 	Verify VerifyFunc
+
+	// lifecycle
+
+	// Prepare is called before the reconciler is executed. It is intended to prepare the broader
+	// environment before the specific table record is executed. For example, setting mock expectations.
+	Prepare func(t *testing.T) error
+	// CleanUp is called after the table record is finished and all defined assertions complete.
+	// It is indended to clean up any state created in the Prepare step or during the test
+	// execution, or to make assertions for mocks.
+	CleanUp func(t *testing.T) error
 }
 
 // VerifyFunc is a verification function
@@ -91,7 +106,7 @@ func (tc *Testcase) Test(t *testing.T, scheme *runtime.Scheme, factory Reconcile
 	givenObjects := make([]runtime.Object, 0, len(tc.GivenObjects))
 	originalGivenObjects := make([]runtime.Object, 0, len(tc.GivenObjects))
 	for _, f := range tc.GivenObjects {
-		object := f.Create()
+		object := f.CreateObject()
 		givenObjects = append(givenObjects, object.DeepCopyObject())
 		originalGivenObjects = append(originalGivenObjects, object.DeepCopyObject())
 	}
@@ -109,6 +124,19 @@ func (tc *Testcase) Test(t *testing.T, scheme *runtime.Scheme, factory Reconcile
 	}
 	log := TestLogger(t)
 	c := factory(t, tc, clientWrapper, tracker, recorder, log)
+
+	if tc.CleanUp != nil {
+		defer func() {
+			if err := tc.CleanUp(t); err != nil {
+				t.Errorf("error during clean up: %s", err)
+			}
+		}()
+	}
+	if tc.Prepare != nil {
+		if err := tc.Prepare(t); err != nil {
+			t.Errorf("error during prepare: %s", err)
+		}
+	}
 
 	// Run the Reconcile we're testing.
 	result, err := c.Reconcile(reconcile.Request{
@@ -195,12 +223,12 @@ func compareActions(t *testing.T, actionName string, expectedActionFactories []F
 	t.Helper()
 	for i, exp := range expectedActionFactories {
 		if i >= len(actualActions) {
-			t.Errorf("Missing %s: %#v", actionName, exp.Create())
+			t.Errorf("Missing %s: %#v", actionName, exp.CreateObject())
 			continue
 		}
 		actual := actualActions[i].GetObject()
 
-		if diff := cmp.Diff(exp.Create(), actual, diffOptions...); diff != "" {
+		if diff := cmp.Diff(exp.CreateObject(), actual, diffOptions...); diff != "" {
 			t.Errorf("Unexpected %s (-expected, +actual): %s", actionName, diff)
 		}
 	}

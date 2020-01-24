@@ -65,7 +65,7 @@ func ProcessorReconciler(c controllers.Config, namespace string) *controllers.Pa
 	c.Log = c.Log.WithName("Processor")
 
 	return &controllers.ParentReconciler{
-		Type: &streamingv1alpha1.Gateway{},
+		Type: &streamingv1alpha1.Processor{},
 		SubReconcilers: []controllers.SubReconciler{
 			ProcessorSyncProcessorImages(c, namespace),
 			ProcessorBuildRefReconciler(c),

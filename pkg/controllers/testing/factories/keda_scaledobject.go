@@ -51,8 +51,12 @@ func (f *kedaScaledObject) deepCopy() *kedaScaledObject {
 	return KedaScaledObject(f.target.DeepCopy())
 }
 
-func (f *kedaScaledObject) Create() apis.Object {
+func (f *kedaScaledObject) Create() *kedav1alpha1.ScaledObject {
 	return f.deepCopy().target
+}
+
+func (f *kedaScaledObject) CreateObject() apis.Object {
+	return f.Create()
 }
 
 func (f *kedaScaledObject) mutation(m func(*kedav1alpha1.ScaledObject)) *kedaScaledObject {

@@ -52,8 +52,12 @@ func (f *inmemoryGateway) deepCopy() *inmemoryGateway {
 	return InMemoryGateway(f.target.DeepCopy())
 }
 
-func (f *inmemoryGateway) Create() apis.Object {
+func (f *inmemoryGateway) Create() *streamingv1alpha1.InMemoryGateway {
 	return f.deepCopy().target
+}
+
+func (f *inmemoryGateway) CreateObject() apis.Object {
+	return f.Create()
 }
 
 func (f *inmemoryGateway) mutation(m func(*streamingv1alpha1.InMemoryGateway)) *inmemoryGateway {

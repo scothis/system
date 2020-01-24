@@ -52,8 +52,12 @@ func (f *kafkaGateway) deepCopy() *kafkaGateway {
 	return KafkaGateway(f.target.DeepCopy())
 }
 
-func (f *kafkaGateway) Create() apis.Object {
+func (f *kafkaGateway) Create() *streamingv1alpha1.KafkaGateway {
 	return f.deepCopy().target
+}
+
+func (f *kafkaGateway) CreateObject() apis.Object {
+	return f.Create()
 }
 
 func (f *kafkaGateway) mutation(m func(*streamingv1alpha1.KafkaGateway)) *kafkaGateway {

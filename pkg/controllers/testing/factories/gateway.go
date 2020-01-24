@@ -54,8 +54,12 @@ func (f *gateway) deepCopy() *gateway {
 	return Gateway(f.target.DeepCopy())
 }
 
-func (f *gateway) Create() apis.Object {
+func (f *gateway) Create() *streamingv1alpha1.Gateway {
 	return f.deepCopy().target
+}
+
+func (f *gateway) CreateObject() apis.Object {
+	return f.Create()
 }
 
 func (f *gateway) mutation(m func(*streamingv1alpha1.Gateway)) *gateway {

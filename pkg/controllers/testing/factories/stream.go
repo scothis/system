@@ -53,8 +53,12 @@ func (f *stream) deepCopy() *stream {
 	return Stream(f.target.DeepCopy())
 }
 
-func (f *stream) Create() apis.Object {
+func (f *stream) Create() *streamingv1alpha1.Stream {
 	return f.deepCopy().target
+}
+
+func (f *stream) CreateObject() apis.Object {
+	return f.Create()
 }
 
 func (f *stream) mutation(m func(*streamingv1alpha1.Stream)) *stream {
@@ -75,6 +79,12 @@ func (f *stream) ObjectMeta(nf func(ObjectMeta)) *stream {
 		omf := objectMeta(s.ObjectMeta)
 		nf(omf)
 		s.ObjectMeta = omf.Create()
+	})
+}
+
+func (f *stream) ContentType(mime string) *stream {
+	return f.mutation(func(s *streamingv1alpha1.Stream) {
+		s.Spec.ContentType = mime
 	})
 }
 

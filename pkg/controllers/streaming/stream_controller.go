@@ -45,7 +45,7 @@ func StreamReconciler(c controllers.Config, provisioner StreamProvisionerClient)
 	return &controllers.ParentReconciler{
 		Type: &streamingv1alpha1.Stream{},
 		SubReconcilers: []controllers.SubReconciler{
-			StreamProvisionReconcier(c, provisioner),
+			StreamProvisionReconciler(c, provisioner),
 			StreamChildBindingMetadataReconciler(c),
 			StreamChildBindingSecretReconciler(c),
 			StreamSyncBindingCondition(c),
@@ -55,7 +55,7 @@ func StreamReconciler(c controllers.Config, provisioner StreamProvisionerClient)
 	}
 }
 
-func StreamProvisionReconcier(c controllers.Config, provisioner StreamProvisionerClient) controllers.SubReconciler {
+func StreamProvisionReconciler(c controllers.Config, provisioner StreamProvisionerClient) controllers.SubReconciler {
 	c.Log = c.Log.WithName("Provision")
 
 	return &controllers.SyncReconciler{
@@ -147,9 +147,7 @@ func StreamChildBindingMetadataReconciler(c controllers.Config) controllers.SubR
 				}
 				return
 			}
-			if child == nil {
-				parent.Status.Binding.MetadataRef = corev1.LocalObjectReference{}
-				parent.Status.MarkBindingNotReady("binding metadata not available")
+			if parent.Status.GetCondition(streamingv1alpha1.StreamConditionResourceAvailable).IsFalse() {
 				return
 			}
 			parent.Status.Binding.MetadataRef = corev1.LocalObjectReference{
@@ -213,9 +211,7 @@ func StreamChildBindingSecretReconciler(c controllers.Config) controllers.SubRec
 				}
 				return
 			}
-			if child == nil {
-				parent.Status.Binding.SecretRef = corev1.LocalObjectReference{}
-				parent.Status.MarkBindingNotReady("binding secret not available")
+			if parent.Status.GetCondition(streamingv1alpha1.StreamConditionResourceAvailable).IsFalse() {
 				return
 			}
 			parent.Status.Binding.SecretRef = corev1.LocalObjectReference{

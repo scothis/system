@@ -21,7 +21,6 @@ import (
 )
 
 type PodTemplateSpec interface {
-	mutate(m func(*corev1.PodTemplateSpec)) PodTemplateSpec
 	Create() corev1.PodTemplateSpec
 
 	AddLabel(key, value string) PodTemplateSpec
