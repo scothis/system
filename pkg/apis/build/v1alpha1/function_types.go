@@ -61,7 +61,7 @@ type FunctionSpec struct {
 	// +optional
 	ImageTaggingStrategy ImageTaggingStrategy `json:"imageTaggingStrategy,omitempty"`
 	// +optional
-	Build ImageBuild `json:"build,omitempty"`
+	Build *ImageBuild `json:"build,omitempty"`
 
 	// Artifact file containing the function within the build workspace.
 	Artifact string `json:"artifact,omitempty"`

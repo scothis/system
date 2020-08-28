@@ -50,7 +50,7 @@ type ClusterBuilderReconciler struct {
 }
 
 // +kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=build.pivotal.io,resources=clusterbuilders,verbs=get;list;watch
+// +kubebuilder:rbac:groups=kpack.io,resources=clusterbuilders,verbs=get;list;watch
 // +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;update;patch;delete
 
 func (r *ClusterBuilderReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {

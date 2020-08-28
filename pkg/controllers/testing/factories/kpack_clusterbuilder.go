@@ -81,9 +81,9 @@ func (f *kpackClusterBuilder) ObjectMeta(nf func(ObjectMeta)) *kpackClusterBuild
 	})
 }
 
-func (f *kpackClusterBuilder) Image(format string, a ...interface{}) *kpackClusterBuilder {
+func (f *kpackClusterBuilder) Tag(format string, a ...interface{}) *kpackClusterBuilder {
 	return f.mutation(func(cb *kpackbuildv1alpha1.ClusterBuilder) {
-		cb.Spec.Image = fmt.Sprintf(format, a...)
+		cb.Spec.Tag = fmt.Sprintf(format, a...)
 	})
 }
 

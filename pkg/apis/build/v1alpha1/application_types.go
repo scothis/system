@@ -62,7 +62,7 @@ type ApplicationSpec struct {
 	// +optional
 	ImageTaggingStrategy ImageTaggingStrategy `json:"imageTaggingStrategy,omitempty"`
 	// +optional
-	Build ImageBuild `json:"build,omitempty"`
+	Build *ImageBuild `json:"build,omitempty"`
 }
 
 // ApplicationStatus defines the observed state of Application

@@ -35,8 +35,8 @@ func TestClusterBuildersReconciler(t *testing.T) {
 	testNamespace := "riff-system"
 	testName := "builders"
 	testKey := types.NamespacedName{Namespace: testNamespace, Name: testName}
-	testApplicationImage := "projectriff/builder:application"
-	testFunctionImage := "projectriff/builder:function"
+	testApplicationTag := "projectriff/builder:application"
+	testFunctionTag := "projectriff/builder:function"
 
 	scheme := runtime.NewScheme()
 	_ = clientgoscheme.AddToScheme(scheme)
@@ -44,16 +44,16 @@ func TestClusterBuildersReconciler(t *testing.T) {
 
 	testApplicationBuilder := factories.KpackClusterBuilder().
 		NamespaceName("", "riff-application").
-		Image(testApplicationImage)
+		Tag(testApplicationTag)
 	testApplicationBuilderReady := testApplicationBuilder.
 		StatusReady().
-		StatusLatestImage(testApplicationImage)
+		StatusLatestImage(testApplicationTag)
 	testFunctionBuilder := factories.KpackClusterBuilder().
 		NamespaceName("", "riff-function").
-		Image(testFunctionImage)
+		Tag(testFunctionTag)
 	testFunctionBuilderReady := testFunctionBuilder.
 		StatusReady().
-		StatusLatestImage(testFunctionImage)
+		StatusLatestImage(testFunctionTag)
 
 	testBuilders := factories.ConfigMap().
 		NamespaceName(testNamespace, testName)
@@ -120,8 +120,8 @@ func TestClusterBuildersReconciler(t *testing.T) {
 		},
 		ExpectCreates: []rtesting.Factory{
 			testBuilders.
-				AddData("riff-application", testApplicationImage).
-				AddData("riff-function", testFunctionImage),
+				AddData("riff-application", testApplicationTag).
+				AddData("riff-function", testFunctionTag),
 		},
 	}, {
 		Name: "create builders configmap, error",
@@ -149,8 +149,8 @@ func TestClusterBuildersReconciler(t *testing.T) {
 		},
 		ExpectUpdates: []rtesting.Factory{
 			testBuilders.
-				AddData("riff-application", testApplicationImage).
-				AddData("riff-function", testFunctionImage),
+				AddData("riff-application", testApplicationTag).
+				AddData("riff-function", testFunctionTag),
 		},
 	}, {
 		Name: "update builders configmap, error",
@@ -166,8 +166,8 @@ func TestClusterBuildersReconciler(t *testing.T) {
 		ShouldErr: true,
 		ExpectUpdates: []rtesting.Factory{
 			testBuilders.
-				AddData("riff-application", testApplicationImage).
-				AddData("riff-function", testFunctionImage),
+				AddData("riff-application", testApplicationTag).
+				AddData("riff-function", testFunctionTag),
 		},
 	}, {
 		Name: "get builders configmap error",

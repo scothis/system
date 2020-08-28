@@ -166,7 +166,7 @@ func (f *function) StatusObservedGeneration(generation int64) *function {
 func (f *function) StatusKpackImageRef(format string, a ...interface{}) *function {
 	return f.mutation(func(fn *buildv1alpha1.Function) {
 		fn.Status.KpackImageRef = &refs.TypedLocalObjectReference{
-			APIGroup: rtesting.StringPtr("build.pivotal.io"),
+			APIGroup: rtesting.StringPtr("kpack.io"),
 			Kind:     "Image",
 			Name:     fmt.Sprintf(format, a...),
 		}

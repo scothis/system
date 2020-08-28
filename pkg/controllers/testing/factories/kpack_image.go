@@ -23,7 +23,6 @@ import (
 	rtesting "github.com/vmware-labs/reconciler-runtime/testing"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	kpackbuildv1alpha1 "github.com/projectriff/system/pkg/apis/thirdparty/kpack/build/v1alpha1"
 )
@@ -86,11 +85,11 @@ func (f *kpackImage) ObjectMeta(nf func(ObjectMeta)) *kpackImage {
 
 func (f *kpackImage) ApplicationBuilder() *kpackImage {
 	return f.mutation(func(image *kpackbuildv1alpha1.Image) {
-		image.Spec.Builder = kpackbuildv1alpha1.ImageBuilder{
-			TypeMeta: metav1.TypeMeta{
-				Kind: "ClusterBuilder",
-			},
-			Name: "riff-application",
+
+		image.Spec.Builder = corev1.ObjectReference{
+			APIVersion: "kpack.io/v1alpha1",
+			Kind:       "ClusterBuilder",
+			Name:       "riff-application",
 		}
 		image.Spec.ServiceAccount = "riff-build"
 	})
@@ -98,13 +97,15 @@ func (f *kpackImage) ApplicationBuilder() *kpackImage {
 
 func (f *kpackImage) FunctionBuilder(artifact, handler, invoker string) *kpackImage {
 	return f.mutation(func(image *kpackbuildv1alpha1.Image) {
-		image.Spec.Builder = kpackbuildv1alpha1.ImageBuilder{
-			TypeMeta: metav1.TypeMeta{
-				Kind: "ClusterBuilder",
-			},
-			Name: "riff-function",
+		image.Spec.Builder = corev1.ObjectReference{
+			APIVersion: "kpack.io/v1alpha1",
+			Kind:       "ClusterBuilder",
+			Name:       "riff-function",
 		}
 		image.Spec.ServiceAccount = "riff-build"
+		if image.Spec.Build == nil {
+			image.Spec.Build = &kpackbuildv1alpha1.ImageBuild{}
+		}
 		env := []corev1.EnvVar{}
 		for _, envvar := range image.Spec.Build.Env {
 			// filter existing value

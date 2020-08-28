@@ -22,7 +22,9 @@ kapp deploy -n apps -a cert-manager -f https://storage.googleapis.com/projectrif
 source $FATS_DIR/macros/no-resource-requests.sh
 
 echo "Installing kpack"
-kapp deploy -n apps -a kpack -f https://storage.googleapis.com/projectriff/release/${riff_version}/kpack.yaml -y
+# TODO restore riff provided kpack
+# kapp deploy -n apps -a kpack -f https://storage.googleapis.com/projectriff/release/${riff_version}/kpack.yaml -y
+kapp deploy -n apps -a kpack -f https://github.com/pivotal/kpack/releases/download/v0.1.2/release-0.1.2.yaml -y
 
 echo "Installing riff Build"
 if [ $MODE = "push" ]; then

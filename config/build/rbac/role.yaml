@@ -7,26 +7,6 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
-  - build.pivotal.io
-  resources:
-  - clusterbuilders
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - build.pivotal.io
-  resources:
-  - images
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
   - build.projectriff.io
   resources:
   - applications
@@ -131,6 +111,26 @@ rules:
   - ""
   resources:
   - serviceaccounts
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - kpack.io
+  resources:
+  - clusterbuilders
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - kpack.io
+  resources:
+  - images
   verbs:
   - create
   - delete

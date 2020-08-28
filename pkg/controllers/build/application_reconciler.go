@@ -21,6 +21,7 @@ import (
 	"fmt"
 
 	"github.com/vmware-labs/reconciler-runtime/reconcilers"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -32,7 +33,7 @@ import (
 
 // +kubebuilder:rbac:groups=build.projectriff.io,resources=applications,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=build.projectriff.io,resources=applications/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=build.pivotal.io,resources=images,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=kpack.io,resources=images,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;update;patch;delete
 
 func ApplicationReconciler(c reconcilers.Config) *reconcilers.ParentReconciler {
@@ -96,11 +97,10 @@ func ApplicationChildImageReconciler(c reconcilers.Config) reconcilers.SubReconc
 				},
 				Spec: kpackbuildv1alpha1.ImageSpec{
 					Tag: parent.Status.TargetImage,
-					Builder: kpackbuildv1alpha1.ImageBuilder{
-						TypeMeta: metav1.TypeMeta{
-							Kind: "ClusterBuilder",
-						},
-						Name: "riff-application",
+					Builder: corev1.ObjectReference{
+						APIVersion: "kpack.io/v1alpha1",
+						Kind:       "ClusterBuilder",
+						Name:       "riff-application",
 					},
 					ServiceAccount:           riffBuildServiceAccount,
 					Source:                   *parent.Spec.Source,

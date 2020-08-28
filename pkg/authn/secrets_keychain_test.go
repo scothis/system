@@ -67,7 +67,7 @@ func TestNewSecretsKeychain(t *testing.T) {
 				{
 					ObjectMeta: metav1.ObjectMeta{
 						Annotations: map[string]string{
-							"build.pivotal.io/docker": "gcr.io",
+							"kpack.io/docker": "gcr.io",
 						},
 					},
 					Data: map[string][]byte{
@@ -91,7 +91,7 @@ func TestNewSecretsKeychain(t *testing.T) {
 				{
 					ObjectMeta: metav1.ObjectMeta{
 						Annotations: map[string]string{
-							"build.pivotal.io/docker": "https://gcr.io/",
+							"kpack.io/docker": "https://gcr.io/",
 						},
 					},
 					Data: map[string][]byte{
@@ -116,7 +116,7 @@ func TestNewSecretsKeychain(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "some-invalid-secret",
 						Annotations: map[string]string{
-							"build.pivotal.io/docker": "gcr.io",
+							"kpack.io/docker": "gcr.io",
 						},
 					},
 					Data: map[string][]byte{
@@ -155,7 +155,7 @@ func TestNewSecretsKeychain(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "some-ignored-secret",
 						Annotations: map[string]string{
-							"build.pivotal.io/docker": "gcr.io",
+							"kpack.io/docker": "gcr.io",
 						},
 					},
 					Data: map[string][]byte{
@@ -177,7 +177,7 @@ func TestNewSecretsKeychain(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "some-invalid-secret",
 						Annotations: map[string]string{
-							"build.pivotal.io/docker": "gcr.io",
+							"kpack.io/docker": "gcr.io",
 						},
 					},
 					Data: map[string][]byte{
@@ -197,7 +197,7 @@ func TestNewSecretsKeychain(t *testing.T) {
 				{
 					ObjectMeta: metav1.ObjectMeta{
 						Annotations: map[string]string{
-							"build.pivotal.io/docker": "https://gcr.io",
+							"kpack.io/docker": "https://gcr.io",
 						},
 					},
 					Data: map[string][]byte{
@@ -209,7 +209,7 @@ func TestNewSecretsKeychain(t *testing.T) {
 				{
 					ObjectMeta: metav1.ObjectMeta{
 						Annotations: map[string]string{
-							"build.pivotal.io/docker": "index.docker.io",
+							"kpack.io/docker": "index.docker.io",
 						},
 					},
 					Data: map[string][]byte{

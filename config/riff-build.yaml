@@ -52,6 +52,23 @@ spec:
           properties:
             build:
               properties:
+                bindings:
+                  items:
+                    properties:
+                      metadataRef:
+                        properties:
+                          name:
+                            type: string
+                        type: object
+                      name:
+                        type: string
+                      secretRef:
+                        properties:
+                          name:
+                            type: string
+                        type: object
+                    type: object
+                  type: array
                 env:
                   items:
                     properties:
@@ -419,6 +436,23 @@ spec:
               type: string
             build:
               properties:
+                bindings:
+                  items:
+                    properties:
+                      metadataRef:
+                        properties:
+                          name:
+                            type: string
+                        type: object
+                      name:
+                        type: string
+                      secretRef:
+                        properties:
+                          name:
+                            type: string
+                        type: object
+                    type: object
+                  type: array
                 env:
                   items:
                     properties:
@@ -674,26 +708,6 @@ metadata:
   name: riff-build-manager-role
 rules:
 - apiGroups:
-  - build.pivotal.io
-  resources:
-  - clusterbuilders
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - build.pivotal.io
-  resources:
-  - images
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
   - build.projectriff.io
   resources:
   - applications
@@ -798,6 +812,26 @@ rules:
   - ""
   resources:
   - serviceaccounts
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - kpack.io
+  resources:
+  - clusterbuilders
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - kpack.io
+  resources:
+  - images
   verbs:
   - create
   - delete

@@ -45,6 +45,23 @@ spec:
           properties:
             build:
               properties:
+                bindings:
+                  items:
+                    properties:
+                      metadataRef:
+                        properties:
+                          name:
+                            type: string
+                        type: object
+                      name:
+                        type: string
+                      secretRef:
+                        properties:
+                          name:
+                            type: string
+                        type: object
+                    type: object
+                  type: array
                 env:
                   items:
                     properties:

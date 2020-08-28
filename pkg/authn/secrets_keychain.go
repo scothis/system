@@ -12,7 +12,7 @@ type DockerSecretsKeychain struct {
 	regAuths map[string]*ggcrauthn.Basic
 }
 
-const DockerSecretAnnotation = "build.pivotal.io/docker"
+const DockerSecretAnnotation = "kpack.io/docker"
 
 func NewSecretsKeychain(secrets []corev1.Secret) ggcrauthn.Keychain {
 	k := &DockerSecretsKeychain{

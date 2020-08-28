@@ -550,8 +550,8 @@ func TestApplicationReconciler(t *testing.T) {
 				`Updated status`),
 		},
 		ExpectDeletes: []rtesting.DeleteRef{
-			{Group: "build.pivotal.io", Kind: "Image", Namespace: testNamespace, Name: "extra1"},
-			{Group: "build.pivotal.io", Kind: "Image", Namespace: testNamespace, Name: "extra2"},
+			{Group: "kpack.io", Kind: "Image", Namespace: testNamespace, Name: "extra1"},
+			{Group: "kpack.io", Kind: "Image", Namespace: testNamespace, Name: "extra2"},
 		},
 		ExpectCreates: []rtesting.Factory{
 			kpackImageCreate,
@@ -587,7 +587,7 @@ func TestApplicationReconciler(t *testing.T) {
 				`Updated status`),
 		},
 		ExpectDeletes: []rtesting.DeleteRef{
-			{Group: "build.pivotal.io", Kind: "Image", Namespace: testNamespace, Name: "extra1"},
+			{Group: "kpack.io", Kind: "Image", Namespace: testNamespace, Name: "extra1"},
 		},
 		ExpectStatusUpdates: []rtesting.Factory{
 			appMinimal.
@@ -635,7 +635,7 @@ func TestApplicationReconciler(t *testing.T) {
 				`Updated status`),
 		},
 		ExpectDeletes: []rtesting.DeleteRef{
-			{Group: "build.pivotal.io", Kind: "Image", Namespace: kpackImageGiven.Create().GetNamespace(), Name: kpackImageGiven.Create().GetName()},
+			{Group: "kpack.io", Kind: "Image", Namespace: kpackImageGiven.Create().GetNamespace(), Name: kpackImageGiven.Create().GetName()},
 		},
 		ExpectStatusUpdates: []rtesting.Factory{
 			appMinimal.
@@ -667,7 +667,7 @@ func TestApplicationReconciler(t *testing.T) {
 				`Updated status`),
 		},
 		ExpectDeletes: []rtesting.DeleteRef{
-			{Group: "build.pivotal.io", Kind: "Image", Namespace: kpackImageGiven.Create().GetNamespace(), Name: kpackImageGiven.Create().GetName()},
+			{Group: "kpack.io", Kind: "Image", Namespace: kpackImageGiven.Create().GetNamespace(), Name: kpackImageGiven.Create().GetName()},
 		},
 		ExpectStatusUpdates: []rtesting.Factory{
 			appMinimal.

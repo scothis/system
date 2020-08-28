@@ -33,7 +33,7 @@ import (
 
 // +kubebuilder:rbac:groups=build.projectriff.io,resources=functions,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=build.projectriff.io,resources=functions/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=build.pivotal.io,resources=images,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=kpack.io,resources=images,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;update;patch;delete
 
 func FunctionReconciler(c reconcilers.Config) *reconcilers.ParentReconciler {
@@ -100,11 +100,10 @@ func FunctionChildImageReconciler(c reconcilers.Config) reconcilers.SubReconcile
 				},
 				Spec: kpackbuildv1alpha1.ImageSpec{
 					Tag: parent.Status.TargetImage,
-					Builder: kpackbuildv1alpha1.ImageBuilder{
-						TypeMeta: metav1.TypeMeta{
-							Kind: "ClusterBuilder",
-						},
-						Name: "riff-function",
+					Builder: corev1.ObjectReference{
+						APIVersion: "kpack.io/v1alpha1",
+						Kind:       "ClusterBuilder",
+						Name:       "riff-function",
 					},
 					ServiceAccount:           riffBuildServiceAccount,
 					Source:                   *parent.Spec.Source,
@@ -114,6 +113,9 @@ func FunctionChildImageReconciler(c reconcilers.Config) reconcilers.SubReconcile
 					ImageTaggingStrategy:     parent.Spec.ImageTaggingStrategy,
 					Build:                    parent.Spec.Build,
 				},
+			}
+			if child.Spec.Build == nil {
+				child.Spec.Build = &kpackbuildv1alpha1.ImageBuild{}
 			}
 			child.Spec.Build.Env = append(child.Spec.Build.Env,
 				corev1.EnvVar{Name: "RIFF", Value: "true"},
