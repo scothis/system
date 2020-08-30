@@ -34,7 +34,7 @@ elif [ $MODE = "pull_request" ]; then
 fi
 # TODO restore riff provided builders
 # kapp deploy -n apps -a riff-builders -f https://storage.googleapis.com/projectriff/release/${riff_version}/riff-builders.yaml -y
-kapp deploy -n apps -a riff-builders -f https://storage.googleapis.com/projectriff/riff-buildtemplate/riff-application-clusterbuilder-0.13.2.yaml -f https://storage.googleapis.com/projectriff/riff-buildtemplate/riff-function-clusterbuilder-0.13.2.yaml -y
+kapp deploy -n apps -a riff-builders -f https://storage.googleapis.com/projectriff/riff-buildtemplate/riff-application-clusterbuilder-0.13.4.yaml -f https://storage.googleapis.com/projectriff/riff-buildtemplate/riff-function-clusterbuilder-0.13.4.yaml -y
 
 echo "Installing Contour"
 ytt -f https://storage.googleapis.com/projectriff/release/${riff_version}/contour.yaml -f https://storage.googleapis.com/projectriff/charts/overlays/service-$(echo ${K8S_SERVICE_TYPE} | tr '[A-Z]' '[a-z]').yaml --file-mark contour.yaml:type=yaml-plain \
