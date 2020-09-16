@@ -42,12 +42,6 @@ type ProcessorSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// Build resolves the image from a build resource. As the target build
-	// produces new images, they will be automatically rolled out to the
-	// processor.
-	// +optional
-	Build *Build `json:"build,omitempty"`
-
 	// Inputs references an ordered list of streams to bind as inputs
 	Inputs []InputStreamBinding `json:"inputs"`
 	// Outputs references an ordered list of streams to bind as outputs
@@ -57,14 +51,6 @@ type ProcessorSpec struct {
 	// Template pod
 	// +optional
 	Template *corev1.PodTemplateSpec `json:"template,omitempty"`
-}
-
-type Build struct {
-	// ContainerRef references a container in this namespace.
-	ContainerRef string `json:"containerRef,omitempty"`
-
-	// FunctionRef references an application in this namespace.
-	FunctionRef string `json:"functionRef,omitempty"`
 }
 
 type OutputStreamBinding struct {
@@ -102,7 +88,6 @@ type ProcessorStatus struct {
 
 	DeploymentRef   *refs.TypedLocalObjectReference `json:"deploymentRef,omitempty"`
 	ScaledObjectRef *refs.TypedLocalObjectReference `json:"scaledObjectRef,omitempty"`
-	LatestImage     string                          `json:"latestImage,omitempty"`
 }
 
 // +kubebuilder:object:root=true

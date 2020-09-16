@@ -30,7 +30,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	buildv1alpha1 "github.com/projectriff/system/pkg/apis/build/v1alpha1"
 	streamingv1alpha1 "github.com/projectriff/system/pkg/apis/streaming/v1alpha1"
 	kedav1alpha1 "github.com/projectriff/system/pkg/apis/thirdparty/keda/v1alpha1"
 	streamingcontrollers "github.com/projectriff/system/pkg/controllers/streaming"
@@ -46,7 +45,6 @@ var (
 
 func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
-	_ = buildv1alpha1.AddToScheme(scheme)
 	_ = kedav1alpha1.AddToScheme(scheme)
 
 	_ = streamingv1alpha1.AddToScheme(scheme)

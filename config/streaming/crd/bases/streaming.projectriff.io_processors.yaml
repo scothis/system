@@ -40,13 +40,6 @@ spec:
           type: object
         spec:
           properties:
-            build:
-              properties:
-                containerRef:
-                  type: string
-                functionRef:
-                  type: string
-              type: object
             inputs:
               items:
                 properties:
@@ -2729,8 +2722,6 @@ spec:
               - kind
               - name
               type: object
-            latestImage:
-              type: string
             observedGeneration:
               format: int64
               type: integer

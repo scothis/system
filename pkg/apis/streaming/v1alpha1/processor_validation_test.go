@@ -37,16 +37,16 @@ func TestValidateProcessor(t *testing.T) {
 		name: "valid",
 		target: &Processor{
 			Spec: ProcessorSpec{
-				Build: &Build{
-					FunctionRef: "my-func",
-				},
 				Inputs: []InputStreamBinding{
 					{Stream: "my-stream", Alias: "in"},
 				},
 				Template: &corev1.PodTemplateSpec{
 					Spec: corev1.PodSpec{
 						Containers: []corev1.Container{
-							{Name: "function"},
+							{
+								Name:  "function",
+								Image: "registry.example.com/my-func",
+							},
 						},
 					},
 				},
@@ -75,9 +75,6 @@ func TestValidateProcessorSpec(t *testing.T) {
 	}, {
 		name: "valid",
 		target: &ProcessorSpec{
-			Build: &Build{
-				FunctionRef: "my-func",
-			},
 			Inputs: []InputStreamBinding{
 				{Stream: "my-stream", Alias: "in"},
 			},
@@ -91,44 +88,8 @@ func TestValidateProcessorSpec(t *testing.T) {
 		},
 		expected: validation.FieldErrors{},
 	}, {
-		name: "requires function ref or container image",
-		target: &ProcessorSpec{
-			Inputs: []InputStreamBinding{
-				{Stream: "my-stream", Alias: "in"},
-			},
-			Template: &corev1.PodTemplateSpec{
-				Spec: corev1.PodSpec{
-					Containers: []corev1.Container{
-						{Name: "function", Image: ""},
-					},
-				},
-			},
-		},
-		expected: validation.ErrMissingOneOf("build", "template.spec.containers[0].image"),
-	}, {
-		name: "forbids both function ref and container image",
-		target: &ProcessorSpec{
-			Build: &Build{
-				FunctionRef: "my-func",
-			},
-			Inputs: []InputStreamBinding{
-				{Stream: "my-stream", Alias: "in"},
-			},
-			Template: &corev1.PodTemplateSpec{
-				Spec: corev1.PodSpec{
-					Containers: []corev1.Container{
-						{Name: "function", Image: "my-image"},
-					},
-				},
-			},
-		},
-		expected: validation.ErrMultipleOneOf("build", "template.spec.containers[0].image"),
-	}, {
 		name: "requires inputs",
 		target: &ProcessorSpec{
-			Build: &Build{
-				FunctionRef: "my-func",
-			},
 			Inputs: nil,
 			Template: &corev1.PodTemplateSpec{
 				Spec: corev1.PodSpec{
@@ -142,9 +103,6 @@ func TestValidateProcessorSpec(t *testing.T) {
 	}, {
 		name: "empty input",
 		target: &ProcessorSpec{
-			Build: &Build{
-				FunctionRef: "my-func",
-			},
 			Inputs: []InputStreamBinding{
 				{},
 			},
@@ -163,9 +121,6 @@ func TestValidateProcessorSpec(t *testing.T) {
 	}, {
 		name: "valid input",
 		target: &ProcessorSpec{
-			Build: &Build{
-				FunctionRef: "my-func",
-			},
 			Inputs: []InputStreamBinding{
 				{Stream: "my-stream", Alias: "in"},
 			},
@@ -181,9 +136,6 @@ func TestValidateProcessorSpec(t *testing.T) {
 	}, {
 		name: "empty output",
 		target: &ProcessorSpec{
-			Build: &Build{
-				FunctionRef: "my-func",
-			},
 			Inputs: []InputStreamBinding{
 				{Stream: "my-stream", Alias: "in"},
 			},
@@ -205,9 +157,6 @@ func TestValidateProcessorSpec(t *testing.T) {
 	}, {
 		name: "valid output",
 		target: &ProcessorSpec{
-			Build: &Build{
-				FunctionRef: "my-func",
-			},
 			Inputs: []InputStreamBinding{
 				{Stream: "my-stream", Alias: "my-input"},
 			},
@@ -226,9 +175,6 @@ func TestValidateProcessorSpec(t *testing.T) {
 	}, {
 		name: "valid offsets",
 		target: &ProcessorSpec{
-			Build: &Build{
-				FunctionRef: "my-func",
-			},
 			Inputs: []InputStreamBinding{
 				{Stream: "my-stream", Alias: "in1", StartOffset: Latest},
 				{Stream: "my-stream", Alias: "in2", StartOffset: Earliest},
@@ -245,9 +191,6 @@ func TestValidateProcessorSpec(t *testing.T) {
 	}, {
 		name: "invalid offset",
 		target: &ProcessorSpec{
-			Build: &Build{
-				FunctionRef: "my-func",
-			},
 			Inputs: []InputStreamBinding{
 				{Stream: "my-stream", Alias: "my-input", StartOffset: "42"},
 			},
@@ -263,9 +206,6 @@ func TestValidateProcessorSpec(t *testing.T) {
 	}, {
 		name: "input alias collision",
 		target: &ProcessorSpec{
-			Build: &Build{
-				FunctionRef: "my-func",
-			},
 			Inputs: []InputStreamBinding{
 				{Stream: "my-stream1", Alias: "my-input"},
 				{Stream: "my-stream2", Alias: "my-input"},
@@ -282,9 +222,6 @@ func TestValidateProcessorSpec(t *testing.T) {
 	}, {
 		name: "output alias collision",
 		target: &ProcessorSpec{
-			Build: &Build{
-				FunctionRef: "my-func",
-			},
 			Inputs: []InputStreamBinding{
 				{Stream: "my-stream1", Alias: "my-input"},
 			},
@@ -303,9 +240,6 @@ func TestValidateProcessorSpec(t *testing.T) {
 	}, {
 		name: "allow duplicates across input/output aliases",
 		target: &ProcessorSpec{
-			Build: &Build{
-				FunctionRef: "my-func",
-			},
 			Inputs: []InputStreamBinding{
 				{Stream: "my-stream1", Alias: "duplicate-alias"},
 			},
@@ -324,9 +258,6 @@ func TestValidateProcessorSpec(t *testing.T) {
 	}, {
 		name: "invalid container name",
 		target: &ProcessorSpec{
-			Build: &Build{
-				FunctionRef: "my-func",
-			},
 			Inputs: []InputStreamBinding{
 				{Stream: "my-stream", Alias: "my-input"},
 			},
@@ -347,44 +278,6 @@ func TestValidateProcessorSpec(t *testing.T) {
 			actual := c.target.Validate()
 			if diff := cmp.Diff(c.expected, actual); diff != "" {
 				t.Errorf("validateProcessorSpec(%s) (-expected, +actual) = %v", c.name, diff)
-			}
-		})
-	}
-}
-
-func TestValidateBuild(t *testing.T) {
-	for _, c := range []struct {
-		name     string
-		target   *Build
-		expected validation.FieldErrors
-	}{{
-		name:     "empty",
-		target:   &Build{},
-		expected: validation.ErrMissingField(validation.CurrentField),
-	}, {
-		name: "valid function",
-		target: &Build{
-			FunctionRef: "my-func",
-		},
-		expected: validation.FieldErrors{},
-	}, {
-		name: "valid container",
-		target: &Build{
-			ContainerRef: "my-container",
-		},
-		expected: validation.FieldErrors{},
-	}, {
-		name: "too many options",
-		target: &Build{
-			FunctionRef:  "my-func",
-			ContainerRef: "my-container",
-		},
-		expected: validation.ErrMultipleOneOf("containerRef", "functionRef"),
-	}} {
-		t.Run(c.name, func(t *testing.T) {
-			actual := c.target.Validate()
-			if diff := cmp.Diff(c.expected, actual); diff != "" {
-				t.Errorf("validateProcessor(%s) (-expected, +actual) = %v", c.name, diff)
 			}
 		})
 	}

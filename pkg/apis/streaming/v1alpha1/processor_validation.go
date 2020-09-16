@@ -78,14 +78,6 @@ func (s *ProcessorSpec) Validate() validation.FieldErrors {
 		errs = errs.Also(validation.ErrInvalidValue(s.Template.Spec.Containers[0].Name, "template.spec.containers[0].name"))
 	}
 
-	if s.Build == nil && s.Template.Spec.Containers[0].Image == "" {
-		errs = errs.Also(validation.ErrMissingOneOf("build", "template.spec.containers[0].image"))
-	} else if s.Build != nil && s.Template.Spec.Containers[0].Image != "" {
-		errs = errs.Also(validation.ErrMultipleOneOf("build", "template.spec.containers[0].image"))
-	} else if s.Build != nil {
-		errs = errs.Also(s.Build.Validate().ViaField("build"))
-	}
-
 	// at least one input is required
 	if len(s.Inputs) == 0 {
 		errs = errs.Also(validation.ErrMissingField("inputs"))
@@ -152,36 +144,6 @@ func validateAliasUniqueness(allAliases []string, aliasType string) validation.F
 			errs = errs.Also(validation.ErrDuplicateValue(alias, uses[alias]...))
 		}
 	}
-	return errs
-}
-
-func (b *Build) Validate() validation.FieldErrors {
-	if equality.Semantic.DeepEqual(b, &Build{}) {
-		return validation.ErrMissingField(validation.CurrentField)
-	}
-
-	errs := validation.FieldErrors{}
-	var used []string
-	var unused []string
-
-	if b.ContainerRef != "" {
-		used = append(used, "containerRef")
-	} else {
-		unused = append(unused, "containerRef")
-	}
-
-	if b.FunctionRef != "" {
-		used = append(used, "functionRef")
-	} else {
-		unused = append(unused, "functionRef")
-	}
-
-	if len(used) == 0 {
-		errs = errs.Also(validation.ErrMissingOneOf(unused...))
-	} else if len(used) > 1 {
-		errs = errs.Also(validation.ErrMultipleOneOf(used...))
-	}
-
 	return errs
 }
 

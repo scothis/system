@@ -7,6 +7,5 @@ import (
 	_ "github.com/google/ko/pkg"
 	_ "github.com/vektra/mockery"
 	_ "golang.org/x/tools/imports"
-	_ "k8s.io/code-generator/pkg/util"
 	_ "sigs.k8s.io/controller-tools/pkg/version"
 )

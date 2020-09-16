@@ -35,7 +35,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	buildv1alpha1 "github.com/projectriff/system/pkg/apis/build/v1alpha1"
 	streamingv1alpha1 "github.com/projectriff/system/pkg/apis/streaming/v1alpha1"
 	kedav1alpha1 "github.com/projectriff/system/pkg/apis/thirdparty/keda/v1alpha1"
 	"github.com/projectriff/system/pkg/refs"
@@ -68,7 +67,6 @@ func ProcessorReconciler(c reconcilers.Config, namespace string) *reconcilers.Pa
 		Type: &streamingv1alpha1.Processor{},
 		SubReconcilers: []reconcilers.SubReconciler{
 			ProcessorSyncProcessorImages(c, namespace),
-			ProcessorBuildRefReconciler(c),
 			ProcessorResolveStreamsReconciler(c),
 			ProcessorChildDeploymentReconciler(c),
 			ProcessorChildScaledObjectReconciler(c),
@@ -105,71 +103,6 @@ func ProcessorSyncProcessorImages(c reconcilers.Config, namespace string) reconc
 	}
 }
 
-func ProcessorBuildRefReconciler(c reconcilers.Config) reconcilers.SubReconciler {
-	c.Log = c.Log.WithName("BuildRef")
-
-	return &reconcilers.SyncReconciler{
-		Sync: func(ctx context.Context, parent *streamingv1alpha1.Processor) error {
-			build := parent.Spec.Build
-			if build == nil {
-				parent.Status.LatestImage = parent.Spec.Template.Spec.Containers[0].Image
-				return nil
-			}
-
-			switch {
-
-			case build.ContainerRef != "":
-				var container buildv1alpha1.Container
-				key := types.NamespacedName{Namespace: parent.Namespace, Name: build.ContainerRef}
-				// track container for new images
-				c.Tracker.Track(
-					tracker.NewKey(container.GetGroupVersionKind(), key),
-					types.NamespacedName{Namespace: parent.Namespace, Name: parent.Name},
-				)
-				if err := c.Get(ctx, key, &container); err != nil {
-					if apierrs.IsNotFound(err) {
-						return nil
-					}
-					return err
-				}
-				if container.Status.LatestImage != "" {
-					parent.Status.LatestImage = container.Status.LatestImage
-				}
-				return nil
-
-			case build.FunctionRef != "":
-				var function buildv1alpha1.Function
-				key := types.NamespacedName{Namespace: parent.Namespace, Name: build.FunctionRef}
-				// track function for new images
-				c.Tracker.Track(
-					tracker.NewKey(function.GetGroupVersionKind(), key),
-					types.NamespacedName{Namespace: parent.Namespace, Name: parent.Name},
-				)
-				if err := c.Get(ctx, key, &function); err != nil {
-					if apierrs.IsNotFound(err) {
-						return nil
-					}
-					return err
-				}
-				if function.Status.LatestImage != "" {
-					parent.Status.LatestImage = function.Status.LatestImage
-				}
-				return nil
-
-			}
-
-			panic(fmt.Errorf("invalid processor build"))
-		},
-
-		Config: c,
-		Setup: func(mgr reconcilers.Manager, bldr *reconcilers.Builder) error {
-			bldr.Watches(&source.Kind{Type: &buildv1alpha1.Container{}}, reconcilers.EnqueueTracked(&buildv1alpha1.Container{}, c.Tracker, c.Scheme))
-			bldr.Watches(&source.Kind{Type: &buildv1alpha1.Function{}}, reconcilers.EnqueueTracked(&buildv1alpha1.Function{}, c.Tracker, c.Scheme))
-			return nil
-		},
-	}
-}
-
 func ProcessorResolveStreamsReconciler(c reconcilers.Config) reconcilers.SubReconciler {
 	c.Log = c.Log.WithName("ResolveStreams")
 
@@ -188,10 +121,6 @@ func ProcessorResolveStreamsReconciler(c reconcilers.Config) reconcilers.SubReco
 
 	return &reconcilers.SyncReconciler{
 		Sync: func(ctx context.Context, processor *streamingv1alpha1.Processor) error {
-			if processor.Status.LatestImage == "" {
-				return nil
-			}
-
 			processorKey := types.NamespacedName{Namespace: processor.Namespace, Name: processor.Name}
 
 			inputStreams := make([]streamingv1alpha1.Stream, len(processor.Spec.Inputs))
@@ -389,10 +318,6 @@ func ProcessorChildDeploymentReconciler(c reconcilers.Config) reconcilers.SubRec
 		ChildListType: &appsv1.DeploymentList{},
 
 		DesiredChild: func(ctx context.Context, parent *streamingv1alpha1.Processor) (*appsv1.Deployment, error) {
-			if parent.Status.LatestImage == "" {
-				// no image, skip
-				return nil, nil
-			}
 			inputStreams, ok := reconcilers.RetrieveValue(ctx, InputStreamsStashKey).([]streamingv1alpha1.Stream)
 			if !ok {
 				return nil, nil
@@ -419,7 +344,6 @@ func ProcessorChildDeploymentReconciler(c reconcilers.Config) reconcilers.SubRec
 			// merge provided template with controlled values
 			template := parent.Spec.Template.DeepCopy()
 			template.Labels = reconcilers.MergeMaps(template.Labels, labels)
-			template.Spec.Containers[0].Image = parent.Status.LatestImage
 			template.Spec.Containers[0].Ports = []v1.ContainerPort{
 				{
 					ContainerPort: 8081,

@@ -28,7 +28,6 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	buildv1alpha1 "github.com/projectriff/system/pkg/apis/build/v1alpha1"
 	streamingv1alpha1 "github.com/projectriff/system/pkg/apis/streaming/v1alpha1"
 	kedav1alpha1 "github.com/projectriff/system/pkg/apis/thirdparty/keda/v1alpha1"
 	"github.com/projectriff/system/pkg/controllers/streaming"
@@ -58,13 +57,6 @@ func TestProcessorReconciler(t *testing.T) {
 	processorImagesConfigMap := factories.ConfigMap().
 		NamespaceName(testSystemNamespace, processorImages).
 		AddData(processorImageKey, testProcessorImage)
-
-	testFunction := factories.Function().
-		NamespaceName(testNamespace, "my-function").
-		StatusLatestImage(testImage)
-	testContainer := factories.Container().
-		NamespaceName(testNamespace, "my-container").
-		StatusLatestImage(testImage)
 
 	testStream1 := factories.Stream().
 		NamespaceName(testNamespace, "stream-1").
@@ -107,17 +99,16 @@ func TestProcessorReconciler(t *testing.T) {
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = streamingv1alpha1.AddToScheme(scheme)
 	_ = kedav1alpha1.AddToScheme(scheme)
-	_ = buildv1alpha1.AddToScheme(scheme)
 
 	processorMinimal := factories.Processor().
 		NamespaceName(testNamespace, testName).
 		ObjectMeta(func(om factories.ObjectMeta) {
 			om.Created(1)
 			om.Generation(1)
-		})
+		}).
+		Image(testImage)
 	processor := processorMinimal.
 		Default().
-		StatusLatestImage(testImage).
 		StatusDeploymentRef("%s-processor-000", testName).
 		StatusScaledObjectRef("%s-processor-000", testName)
 
@@ -229,7 +220,6 @@ func TestProcessorReconciler(t *testing.T) {
 						processorConditionScaledObjectReady.True(),
 						processorConditionStreamsReady.True(),
 					).
-					StatusLatestImage(testImage).
 					StatusDeploymentRef("%s-processor-001", testName).
 					StatusScaledObjectRef("%s-processor-002", testName),
 			},
@@ -264,7 +254,6 @@ func TestProcessorReconciler(t *testing.T) {
 						processorConditionScaledObjectReady.True(),
 						processorConditionStreamsReady.True(),
 					).
-					StatusLatestImage(testImage).
 					StatusDeploymentRef("%s-processor-000", testName).
 					StatusScaledObjectRef("%s-processor-000", testName),
 			},
@@ -305,102 +294,8 @@ func TestProcessorReconciler(t *testing.T) {
 		})
 	})
 
-	t.Run("ProcessorBuildRefReconciler", func(t *testing.T) {
-		rts := rtesting.SubReconcilerTestSuite{
-			{
-				Name: "use specified image",
-				Parent: processor.
-					Image(testImage),
-				ExpectParent: processor.
-					Image(testImage).
-					StatusLatestImage(testImage),
-			},
-			{
-				Name: "container build",
-				Parent: processor.
-					BuildContainerRef(testContainer),
-				GivenObjects: []rtesting.Factory{
-					testContainer,
-				},
-				ExpectParent: processor.
-					BuildContainerRef(testContainer).
-					StatusLatestImage(testImage),
-				ExpectTracks: []rtesting.TrackRequest{
-					rtesting.NewTrackRequest(testContainer, processor, scheme),
-				},
-			},
-			{
-				Name: "container build, not found",
-				Parent: processor.
-					BuildContainerRef(testContainer),
-				ExpectTracks: []rtesting.TrackRequest{
-					rtesting.NewTrackRequest(testContainer, processor, scheme),
-				},
-			},
-			{
-				Name: "container build, lookup error",
-				Parent: processor.
-					BuildContainerRef(testContainer),
-				WithReactors: []rtesting.ReactionFunc{
-					rtesting.InduceFailure("get", "Container"),
-				},
-				ShouldErr: true,
-				ExpectTracks: []rtesting.TrackRequest{
-					rtesting.NewTrackRequest(testContainer, processor, scheme),
-				},
-			},
-			{
-				Name: "function build",
-				Parent: processor.
-					BuildFunctionRef(testFunction),
-				GivenObjects: []rtesting.Factory{
-					testFunction,
-				},
-				ExpectParent: processor.
-					BuildFunctionRef(testFunction).
-					StatusLatestImage(testImage),
-				ExpectTracks: []rtesting.TrackRequest{
-					rtesting.NewTrackRequest(testFunction, processor, scheme),
-				},
-			},
-			{
-				Name: "function build, not found",
-				Parent: processor.
-					BuildFunctionRef(testFunction),
-				ExpectTracks: []rtesting.TrackRequest{
-					rtesting.NewTrackRequest(testFunction, processor, scheme),
-				},
-			},
-			{
-				Name: "function build, lookup error",
-				Parent: processor.
-					BuildFunctionRef(testFunction),
-				WithReactors: []rtesting.ReactionFunc{
-					rtesting.InduceFailure("get", "Function"),
-				},
-				ShouldErr: true,
-				ExpectTracks: []rtesting.TrackRequest{
-					rtesting.NewTrackRequest(testFunction, processor, scheme),
-				},
-			},
-		}
-
-		rts.Test(t, scheme, func(t *testing.T, rtc *rtesting.SubReconcilerTestCase, c reconcilers.Config) reconcilers.SubReconciler {
-			return streaming.ProcessorBuildRefReconciler(c)
-		})
-	})
-
 	t.Run("ProcessorResolveStreamsReconciler", func(t *testing.T) {
 		rts := rtesting.SubReconcilerTestSuite{
-			{
-				Name: "skip",
-				Parent: processor.
-					StatusLatestImage(""),
-				ExpectStashedValues: map[reconcilers.StashKey]interface{}{
-					streaming.InputStreamsStashKey:  nil,
-					streaming.OutputStreamsStashKey: nil,
-				},
-			},
 			{
 				Name:   "no streams",
 				Parent: processor,
@@ -535,18 +430,8 @@ func TestProcessorReconciler(t *testing.T) {
 	t.Run("ProcessorChildDeploymentReconciler", func(t *testing.T) {
 		rts := rtesting.SubReconcilerTestSuite{
 			{
-				Name:   "skip, missing latest image",
+				Name:   "skip, missing input streams",
 				Parent: processorMinimal,
-				GivenStashedValues: map[reconcilers.StashKey]interface{}{
-					streaming.InputStreamsStashKey:    []streamingv1alpha1.Stream{},
-					streaming.OutputStreamsStashKey:   []streamingv1alpha1.Stream{},
-					streaming.ProcessorImagesStashKey: processorImagesConfigMap.Create().Data,
-				},
-			},
-			{
-				Name: "skip, missing input streams",
-				Parent: processorMinimal.
-					StatusLatestImage(testImage),
 				GivenStashedValues: map[reconcilers.StashKey]interface{}{
 					streaming.InputStreamsStashKey:    nil,
 					streaming.OutputStreamsStashKey:   []streamingv1alpha1.Stream{},
@@ -554,9 +439,8 @@ func TestProcessorReconciler(t *testing.T) {
 				},
 			},
 			{
-				Name: "skip, missing output streams",
-				Parent: processorMinimal.
-					StatusLatestImage(testImage),
+				Name:   "skip, missing output streams",
+				Parent: processorMinimal,
 				GivenStashedValues: map[reconcilers.StashKey]interface{}{
 					streaming.InputStreamsStashKey:    []streamingv1alpha1.Stream{},
 					streaming.OutputStreamsStashKey:   nil,
@@ -564,9 +448,8 @@ func TestProcessorReconciler(t *testing.T) {
 				},
 			},
 			{
-				Name: "skip, missing processor images map",
-				Parent: processorMinimal.
-					StatusLatestImage(testImage),
+				Name:   "skip, missing processor images map",
+				Parent: processorMinimal,
 				GivenStashedValues: map[reconcilers.StashKey]interface{}{
 					streaming.InputStreamsStashKey:    []streamingv1alpha1.Stream{},
 					streaming.OutputStreamsStashKey:   []streamingv1alpha1.Stream{},
@@ -574,9 +457,8 @@ func TestProcessorReconciler(t *testing.T) {
 				},
 			},
 			{
-				Name: "skip, missing processor images map, missing processor image",
-				Parent: processorMinimal.
-					StatusLatestImage(testImage),
+				Name:   "skip, missing processor images map, missing processor image",
+				Parent: processorMinimal,
 				GivenStashedValues: map[reconcilers.StashKey]interface{}{
 					streaming.InputStreamsStashKey:  []streamingv1alpha1.Stream{},
 					streaming.OutputStreamsStashKey: []streamingv1alpha1.Stream{},
@@ -1028,7 +910,6 @@ func TestProcessorReconciler(t *testing.T) {
 			{
 				Name: "binding secret not found",
 				Parent: processorMinimal.
-					StatusLatestImage(testImage).
 					StatusDeploymentRef("%s-processor-000", testName).
 					Inputs(
 						testStream1.CreateInputStreamBinding("alias-in-1", streamingv1alpha1.Earliest),
@@ -1042,7 +923,6 @@ func TestProcessorReconciler(t *testing.T) {
 			{
 				Name: "binding secret error",
 				Parent: processorMinimal.
-					StatusLatestImage(testImage).
 					StatusDeploymentRef("%s-processor-000", testName).
 					Inputs(
 						testStream1.CreateInputStreamBinding("alias-in-1", streamingv1alpha1.Earliest),
@@ -1060,7 +940,6 @@ func TestProcessorReconciler(t *testing.T) {
 			{
 				Name: "binding secret missing gateway",
 				Parent: processorMinimal.
-					StatusLatestImage(testImage).
 					StatusDeploymentRef("%s-processor-000", testName).
 					Inputs(
 						testStream1.CreateInputStreamBinding("alias-in-1", streamingv1alpha1.Earliest),
@@ -1079,7 +958,6 @@ func TestProcessorReconciler(t *testing.T) {
 			{
 				Name: "binding secret missing topic",
 				Parent: processorMinimal.
-					StatusLatestImage(testImage).
 					StatusDeploymentRef("%s-processor-000", testName).
 					Inputs(
 						testStream1.CreateInputStreamBinding("alias-in-1", streamingv1alpha1.Earliest),

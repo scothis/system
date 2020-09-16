@@ -89,22 +89,6 @@ func (f *processor) ObjectMeta(nf func(ObjectMeta)) *processor {
 	})
 }
 
-func (f *processor) BuildFunctionRef(function *function) *processor {
-	return f.mutation(func(proc *streamingv1alpha1.Processor) {
-		proc.Spec.Build = &streamingv1alpha1.Build{
-			FunctionRef: function.Create().Name,
-		}
-	})
-}
-
-func (f *processor) BuildContainerRef(container *container) *processor {
-	return f.mutation(func(proc *streamingv1alpha1.Processor) {
-		proc.Spec.Build = &streamingv1alpha1.Build{
-			ContainerRef: container.Create().Name,
-		}
-	})
-}
-
 func (f *processor) Image(image string) *processor {
 	return f.PodTemplateSpec(func(pts PodTemplateSpec) {
 		pts.ContainerNamed("function", func(c *corev1.Container) {
@@ -158,12 +142,6 @@ func (f *processor) StatusConditions(conditions ...ConditionFactory) *processor 
 func (f *processor) StatusObservedGeneration(generation int64) *processor {
 	return f.mutation(func(proc *streamingv1alpha1.Processor) {
 		proc.Status.ObservedGeneration = generation
-	})
-}
-
-func (f *processor) StatusLatestImage(image string) *processor {
-	return f.mutation(func(proc *streamingv1alpha1.Processor) {
-		proc.Status.LatestImage = image
 	})
 }
 

@@ -34,38 +34,17 @@ compile: prepare ## Compile target binaries
 
 .PHONY: prepare
 prepare: generate fmt vet manifests ## Create all generated and scaffolded files
-	kustomize build config/build/default > config/riff-build.yaml
-	kustomize build config/core/default > config/riff-core.yaml
-	kustomize build config/knative/default > config/riff-knative.yaml
 	kustomize build config/streaming/default > config/riff-streaming.yaml
 
 # Generate manifests e.g. CRD, RBAC etc.
 .PHONY: manifests
 manifests:
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook crd:maxDescLen=0 \
-		paths="./pkg/apis/build/...;./pkg/controllers/build/..." \
-		output:crd:dir=./config/build/crd/bases \
-		output:rbac:dir=./config/build/rbac \
-		output:webhook:dir=./config/build/webhook
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook crd:maxDescLen=0 \
-		paths="./pkg/apis/core/...;./pkg/controllers/core/..." \
-		output:crd:dir=./config/core/crd/bases \
-		output:rbac:dir=./config/core/rbac \
-		output:webhook:dir=./config/core/webhook
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook crd:maxDescLen=0 \
-		paths="./pkg/apis/knative/...;./pkg/controllers/knative/..." \
-		output:crd:dir=./config/knative/crd/bases \
-		output:rbac:dir=./config/knative/rbac \
-		output:webhook:dir=./config/knative/webhook
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook crd:maxDescLen=0 \
 		paths="./pkg/apis/streaming/...;./pkg/controllers/streaming/..." \
 		output:crd:dir=./config/streaming/crd/bases \
 		output:rbac:dir=./config/streaming/rbac \
 		output:webhook:dir=./config/streaming/webhook
 	# cleanup duplicate resource generation
-	@rm -f config/build.*
-	@rm -f config/core.*
-	@rm -f config/knative.*
 	@rm -f config/streaming.*
 
 # Run go fmt against code

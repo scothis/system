@@ -10,17 +10,8 @@ readonly git_timestamp=$(TZ=UTC git show --quiet --date='format-local:%Y%m%d%H%M
 readonly slug=${version}-${git_timestamp}-${git_sha:0:16}
 readonly git_branch=${1:11} # drop 'refs/head/' prefix
 
-publishComponent() {
-  local component=$1
-
-  gsutil cp gs://projectriff/riff-system/snapshots/riff-${component}-${slug}.yaml gs://projectriff/riff-system/riff-${component}-${version}.yaml
-}
-
 echo "Publishing riff System"
-publishComponent build
-publishComponent core
-publishComponent knative
-publishComponent streaming
+gsutil cp gs://projectriff/riff-system/snapshots/riff-streaming-${slug}.yaml gs://projectriff/riff-system/riff-streaming-${version}.yaml
 
 echo "Publishing version references"
 echo "${slug}" > slug.txt
